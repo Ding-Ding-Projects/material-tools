@@ -4,7 +4,7 @@
 
 The Settings destination always exposes a **Private vocabulary** file picker. A user may select a local JSON file containing approved literal user-interface wording replacements. The application validates the file before use, caches only the validated replacement table in local browser storage, applies replacements at rendered-copy and accessible-name boundaries, and leaves factual device values, paths, commands, URLs, identifiers, and other external records unchanged.
 
-When no valid file is loaded, every shipped string remains unchanged. Clearing the local cache immediately restores shipped wording. Upload success, validation failure, and clearing are reported through non-blocking notifications.
+When no valid file is loaded, every shipped string remains unchanged. Clearing the local cache immediately restores shipped wording. Upload success, validation failure, and clearing are reported through non-blocking notifications. The setting includes a bundled action illustration whose localized alternative text follows the same approved rendered-copy boundary; the illustration never contains or derives from the uploaded file.
 
 ## Configuration
 

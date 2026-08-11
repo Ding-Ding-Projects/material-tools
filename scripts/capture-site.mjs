@@ -1,10 +1,24 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { selectSoleCdpPage } from './cdp-target.mjs';
 
 function option(name, fallback) {
   const prefix = `--${name}=`;
   const entry = process.argv.slice(2).find((argument) => argument.startsWith(prefix));
   return entry ? entry.slice(prefix.length) : fallback;
+}
+
+function describeCaptureMethod(source) {
+  const sourceUrl = new URL(source);
+  if (sourceUrl.protocol === 'https:'
+    && sourceUrl.hostname.toLowerCase() === 'ding-ding-projects.github.io'
+    && sourceUrl.pathname === '/material-tools/') {
+    return 'Live GitHub Pages deployment opened in Microsoft Edge on a hidden Win32 desktop with a fresh profile; Chrome DevTools Protocol Page.captureScreenshot';
+  }
+  if (['127.0.0.1', 'localhost', '[::1]'].includes(sourceUrl.hostname.toLowerCase())) {
+    return 'Local documentation preview opened in Microsoft Edge on a hidden Win32 desktop with a fresh profile; Chrome DevTools Protocol Page.captureScreenshot';
+  }
+  return 'Documentation target opened in Microsoft Edge on a hidden Win32 desktop with a fresh profile; Chrome DevTools Protocol Page.captureScreenshot';
 }
 
 const port = Number(option('port', '9338'));
@@ -19,8 +33,7 @@ const targets = await fetch(`http://127.0.0.1:${port}/json/list`).then((response
   if (!response.ok) throw new Error(`CDP target discovery failed with HTTP ${response.status}.`);
   return response.json();
 });
-const page = targets.find((target) => target.type === 'page' && target.webSocketDebuggerUrl && target.url?.startsWith(expectedOrigin));
-if (!page) throw new Error(`No live documentation page from ${expectedOrigin} was available through CDP.`);
+const page = selectSoleCdpPage(targets, expectedOrigin, port);
 
 const socket = new WebSocket(page.webSocketDebuggerUrl);
 await new Promise((resolveOpen, rejectOpen) => {
@@ -65,6 +78,19 @@ function send(method, params = {}) {
       },
     });
   });
+}
+
+async function closeSocket() {
+  if (socket.readyState === WebSocket.CLOSED) return true;
+  const closed = new Promise((resolveClose) => {
+    const timer = setTimeout(() => resolveClose(false), 1_500);
+    socket.addEventListener('close', () => {
+      clearTimeout(timer);
+      resolveClose(true);
+    }, { once: true });
+  });
+  socket.close(1000, 'Capture complete');
+  return closed;
 }
 
 async function evaluate(expression) {
@@ -116,9 +142,24 @@ async function clickButtonText(text, label = text) {
 }
 
 const captures = [];
-async function capture(name, state, width = 1440, height = 1000, captureBeyondViewport = true) {
-  await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
+async function capture(name, state, width = 1440, height = 1000, captureBeyondViewport = true, mobile = false, touch = false) {
+  await send('Emulation.setDeviceMetricsOverride', {
+    width,
+    height,
+    screenWidth: width,
+    screenHeight: height,
+    deviceScaleFactor: 1,
+    mobile,
+    screenOrientation: width > height
+      ? { type: 'landscapePrimary', angle: 90 }
+      : { type: 'portraitPrimary', angle: 0 },
+  });
+  await send('Emulation.setTouchEmulationEnabled', { enabled: touch, maxTouchPoints: touch ? 5 : 1 });
   await waitFor("document.fonts.status === 'loaded'", 'document fonts');
+  if (mobile) {
+    await waitFor(`document.documentElement.scrollWidth <= innerWidth + 1
+      && document.body.scrollWidth <= innerWidth + 1`, `${width} by ${height} mobile content without sideways overflow`);
+  }
   await delay(260);
   const result = await send('Page.captureScreenshot', { format: 'png', fromSurface: true, captureBeyondViewport });
   const bytes = Buffer.from(result.data, 'base64');
@@ -126,7 +167,7 @@ async function capture(name, state, width = 1440, height = 1000, captureBeyondVi
   const capturedWidth = bytes.readUInt32BE(16);
   const capturedHeight = bytes.readUInt32BE(20);
   writeFileSync(resolve(outputDirectory, `${name}.png`), bytes);
-  captures.push({ file: `${name}.png`, state, width: capturedWidth, height: capturedHeight, bytes: bytes.length });
+  captures.push({ file: `${name}.png`, state, width: capturedWidth, height: capturedHeight, bytes: bytes.length, mobile, touch });
   console.log(`Captured ${name}: ${capturedWidth}x${capturedHeight}, ${bytes.length} bytes`);
 }
 
@@ -145,6 +186,7 @@ await click('#tab-settings', 'Settings tab');
 await clickButtonText('Light', 'Light theme control');
 await waitFor("document.documentElement.dataset.theme === 'light'", 'the light theme');
 await click('#tab-overview', 'Overview tab');
+await waitFor("scrollY === 0 && (document.querySelector('main')?.scrollTop ?? 0) === 0", 'the overview scroll origin');
 await capture('overview-light', 'Live documentation home, light theme, original wording');
 
 for (const [id, file, label] of [
@@ -195,10 +237,91 @@ await evaluate("document.querySelector('.appearance-editor button.text-button')?
 await delay(180);
 
 await click('#tab-overview', 'Overview tab');
-await capture('overview-narrow', 'Live documentation home at a narrow touch layout', 390, 844, false);
+await waitFor("scrollY === 0 && (document.querySelector('main')?.scrollTop ?? 0) === 0", 'the mobile overview scroll origin');
+await capture('overview-narrow', 'Live documentation home at a 390 by 844 mobile touch layout', 390, 844, false, true, true);
+await click('.private-vocabulary-quick__trigger', 'Mobile private-vocabulary panel trigger');
+await waitFor(`(() => {
+  const panel = document.querySelector('#private-vocabulary-quick-panel');
+  const scrim = document.querySelector('.private-vocabulary-quick__scrim');
+  const upload = panel?.querySelector('.private-vocabulary-quick__upload');
+  const fileInput = upload?.querySelector('input[type="file"]');
+  const close = panel?.querySelector('header button');
+  const status = panel?.querySelector('.private-vocabulary-control__status');
+  const clear = panel?.querySelector('button[disabled]');
+  if (!(panel instanceof HTMLElement) || !(scrim instanceof HTMLElement)) return false;
+  if (!(upload instanceof HTMLElement) || !(fileInput instanceof HTMLInputElement) || !(close instanceof HTMLElement) || !(status instanceof HTMLElement) || !(clear instanceof HTMLElement)) return false;
+  const panelStyle = getComputedStyle(panel);
+  const scrimStyle = getComputedStyle(scrim);
+  const bounds = panel.getBoundingClientRect();
+  const scrimBounds = scrim.getBoundingClientRect();
+  const requiredControls = [upload, close, status, clear];
+  const controlsFit = requiredControls.every((control) => {
+    const controlStyle = getComputedStyle(control);
+    const controlBounds = control.getBoundingClientRect();
+    return controlStyle.display !== 'none'
+      && controlStyle.visibility === 'visible'
+      && Number(controlStyle.opacity) > 0
+      && controlBounds.left >= bounds.left - 1
+      && controlBounds.top >= bounds.top - 1
+      && controlBounds.right <= bounds.right + 1
+      && controlBounds.bottom <= bounds.bottom + 1;
+  });
+  return panel.getAttribute('role') === 'dialog'
+    && panel.getAttribute('aria-modal') === 'true'
+    && panelStyle.position === 'fixed'
+    && panelStyle.visibility === 'visible'
+    && panelStyle.display !== 'none'
+    && Number(panelStyle.opacity) > 0
+    && scrimStyle.visibility === 'visible'
+    && scrimStyle.display !== 'none'
+    && Math.abs(bounds.left) <= 1
+    && bounds.top >= -1
+    && Math.abs(bounds.right - innerWidth) <= 1
+    && Math.abs(bounds.bottom - innerHeight) <= 1
+    && bounds.width >= innerWidth - 1
+    && bounds.height >= 260
+    && scrimBounds.left >= -1
+    && scrimBounds.top >= -1
+    && scrimBounds.right <= innerWidth + 1
+    && scrimBounds.bottom <= innerHeight + 1
+    && scrimBounds.width >= innerWidth - 1
+    && scrimBounds.height >= innerHeight - 1
+    && controlsFit;
+})()`, 'the fully visible in-viewport mobile private-vocabulary panel');
+await delay(180);
+await capture('private-vocabulary-mobile', 'Live M3 private-vocabulary bottom sheet at a 390 by 844 mobile touch layout', 390, 844, false, true, true);
+await click('#private-vocabulary-quick-panel > header button', 'Mobile private-vocabulary panel close control');
+await waitFor(`(() => {
+  const trigger = document.querySelector('.private-vocabulary-quick__trigger');
+  return !document.querySelector('#private-vocabulary-quick-panel')
+    && !document.querySelector('.private-vocabulary-quick__scrim')
+    && trigger instanceof HTMLElement
+    && trigger.getAttribute('aria-expanded') === 'false'
+    && document.activeElement === trigger;
+})()`, 'the closed private-vocabulary panel');
+await click('[aria-label="Open navigation"]', 'Mobile navigation drawer trigger');
+await waitFor(`(() => {
+  const navigation = document.querySelector('#feature-navigation');
+  if (!(navigation instanceof HTMLElement) || !navigation.classList.contains('is-mobile-open')) return false;
+  const style = getComputedStyle(navigation);
+  const bounds = navigation.getBoundingClientRect();
+  return style.visibility === 'visible' && Math.abs(bounds.left) < 1 && bounds.width >= 250;
+})()`, 'the fully opened mobile navigation drawer');
+await delay(180);
+await capture('mobile-navigation', 'Live M3 mobile navigation drawer with touch emulation', 390, 844, false, true, true);
+await click('[aria-label="Close navigation"]', 'Mobile navigation drawer close control');
+await waitFor(`(() => {
+  const navigation = document.querySelector('#feature-navigation');
+  if (!(navigation instanceof HTMLElement) || navigation.classList.contains('is-mobile-open')) return false;
+  const style = getComputedStyle(navigation);
+  const bounds = navigation.getBoundingClientRect();
+  return style.visibility === 'hidden' && bounds.right <= 1;
+})()`, 'the fully closed mobile navigation drawer');
+await capture('overview-compact', 'Live documentation home at the minimum 320 by 568 mobile touch layout', 320, 568, false, true, true);
+await capture('overview-landscape', 'Live documentation home at an 844 by 390 landscape mobile touch layout', 844, 390, false, true, true);
 
+await send('Emulation.setTouchEmulationEnabled', { enabled: false, maxTouchPoints: 1 });
 await send('Emulation.clearDeviceMetricsOverride');
-socket.close();
 
 writeFileSync(resolve(outputDirectory, 'manifest.json'), `${JSON.stringify({
   schemaVersion: 1,
@@ -206,9 +329,15 @@ writeFileSync(resolve(outputDirectory, 'manifest.json'), `${JSON.stringify({
   deployedCommit: commit,
   pagesRun,
   source: page.url,
-  captureMethod: 'Live GitHub Pages deployment opened in Microsoft Edge on a hidden Win32 desktop with a fresh profile; Chrome DevTools Protocol Page.captureScreenshot',
+  captureMethod: describeCaptureMethod(page.url),
   privacyState: 'No private vocabulary file was supplied; original wording remained active.',
   captures,
 }, null, 2)}\n`);
 
 console.log(`Wrote ${captures.length} live-site captures and manifest.json to ${outputDirectory}`);
+const socketClosed = await closeSocket();
+if (!socketClosed) {
+  console.warn('CDP WebSocket did not finish its close handshake; capture files are complete, so the bounded harness is exiting.');
+  await new Promise((resolveFlush) => process.stdout.write('', resolveFlush));
+  process.exit(0);
+}

@@ -2,7 +2,7 @@
 
 Material Tools is a Windows Electron application being built to provide full behavioral parity with [Chris Titus Tech's WinUtil](https://github.com/ChrisTitusTech/winutil), wrapped in a secure Material Design 3 desktop experience.
 
-> **Current status:** verified foundation release. The application launches, reports a real read-only system summary, exposes a frameless Material shell, persists core appearance and language settings, and includes a bounded regex search plus `Ctrl+Shift+F` command palette. The initial documentation site is live. System-changing WinUtil operations remain deliberately unavailable until their preview, recovery, verification, and audit contracts are implemented.
+> **Current status:** verified foundation release. The application launches, reports a real read-only system summary, exposes a frameless Material shell with seed-derived tonal roles, persists core appearance and language settings, and includes a bounded regex search plus `Ctrl+Shift+F` command palette. Every current feature page and implemented dialog, popover, notification, and nested vocabulary surface carries its own local action illustration. The responsive documentation site is live. System-changing WinUtil operations remain deliberately unavailable until their preview, recovery, verification, and audit contracts are implemented.
 
 ## Start here
 
@@ -10,7 +10,7 @@ Material Tools is a Windows Electron application being built to provide full beh
 - Build the unsigned Squirrel.Windows installer: `build-installer.bat`
 - Silent automation mode: `build.bat /s` or `build-installer.bat /s`
 - Live documentation: <https://ding-ding-projects.github.io/material-tools/>
-- Verified unsigned installer: [`build-0.1.0.15` for Windows x64](https://github.com/Ding-Ding-Projects/material-tools/releases/download/build-0.1.0.15/MaterialTools-Setup-0.1.0-x64.exe)
+- Verified unsigned installer: [`build-0.1.0.16` for Windows x64](https://github.com/Ding-Ding-Projects/material-tools/releases/download/build-0.1.0.16/MaterialTools-Setup-0.1.0-x64.exe)
 - Documentation: [docs/README.md](docs/README.md)
 - Interactive documentation site source: [site/README.md](site/README.md)
 - Delivery plan: [ROADMAP.md](ROADMAP.md)
@@ -32,6 +32,9 @@ The installer is intentionally unsigned and may trigger an unknown-publisher or 
 - Persisted application display name, theme, density, accent, and dialog-emoji setting.
 - Visible private-vocabulary upload and clear controls with bounded versioned validation, local-only caching, and unchanged shipped wording when no file is loaded.
 - Non-blocking error notifications.
+- Twelve bundled action illustrations with localized alternative text, explicit feature/surface coverage, and no runtime network fetch.
+- Material Design 3 tonal-role generation from the saved accent seed, including contrast checks for extreme seed colors.
+- A mobile documentation drawer and private-vocabulary bottom sheet verified at 320 px, 390 px, and short landscape touch layouts.
 
 </details>
 

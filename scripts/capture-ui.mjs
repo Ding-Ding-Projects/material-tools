@@ -1,5 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { selectSoleCdpPage } from './cdp-target.mjs';
 
 function option(name, fallback) {
   const prefix = `--${name}=`;
@@ -11,6 +13,7 @@ const port = Number(option('port', '9333'));
 const outputDirectory = resolve(option('output', 'docs/captures/foundation'));
 const commit = option('commit', 'unknown');
 const releaseTag = option('release', 'local-build');
+const expectedUrl = option('url', pathToFileURL(resolve('dist/win-unpacked/resources/app.asar/dist/renderer/index.html')).href);
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('The CDP port must be an integer from 1 to 65535.');
 
 mkdirSync(outputDirectory, { recursive: true });
@@ -18,8 +21,7 @@ const targets = await fetch(`http://127.0.0.1:${port}/json/list`).then((response
   if (!response.ok) throw new Error(`CDP target discovery failed with HTTP ${response.status}.`);
   return response.json();
 });
-const page = targets.find((target) => target.type === 'page' && target.webSocketDebuggerUrl);
-if (!page) throw new Error('No Electron renderer page was available through CDP.');
+const page = selectSoleCdpPage(targets, expectedUrl, port);
 
 const socket = new WebSocket(page.webSocketDebuggerUrl);
 await new Promise((resolveOpen, rejectOpen) => {

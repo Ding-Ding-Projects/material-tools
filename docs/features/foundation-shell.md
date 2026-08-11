@@ -2,7 +2,7 @@
 
 ## Behavior
 
-The initial application is a real frameless Material Design 3 desktop shell. It reads live device facts without modifying the host, navigates through a responsive left tab rail, filters destinations through bounded plain-text or regex search, and opens a global command palette with `Ctrl+Shift+F`.
+The initial application is a real frameless Material Design 3 desktop shell. It reads live device facts without modifying the host, navigates through a responsive left tab rail, filters destinations through bounded plain-text or regex search, and opens a global command palette with `Ctrl+Shift+F`. Every current feature page and implemented dialog, popover, notification, and nested vocabulary surface carries its own bundled action illustration with localized alternative text.
 
 ## Configuration
 
@@ -29,4 +29,5 @@ The renderer has no direct operating-system or filesystem access. Search evaluat
 ## Suggested articles
 
 - [Security and process architecture](../architecture/security-and-processes.md)
+- [Action illustrations](action-illustrations.md)
 - [WinUtil parity contract](winutil-parity.md)

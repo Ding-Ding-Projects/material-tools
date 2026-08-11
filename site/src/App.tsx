@@ -3,12 +3,13 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
 import { articles, initialState } from './catalog';
-import { bestContrastingText } from './color';
+import { materialThemeTokens } from './color';
 import { coverageInventory } from './coverage';
 import { matchesSearch } from './regex';
 import { loadState, saveState, STORAGE_KEY } from './storage';
@@ -31,11 +32,26 @@ import { SearchBox } from './components/SearchBox';
 
 const emptySearch = (): SearchState => ({ query: '', regex: false, flags: 'i' });
 
+function useMediaQuery(query: string) {
+  const [matches, setMatches] = useState(() => typeof window.matchMedia === 'function' && window.matchMedia(query).matches);
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return undefined;
+    const media = window.matchMedia(query);
+    const onChange = (event: MediaQueryListEvent) => setMatches(event.matches);
+    setMatches(media.matches);
+    media.addEventListener('change', onChange);
+    return () => media.removeEventListener('change', onChange);
+  }, [query]);
+
+  return matches;
+}
+
 const verifiedInstaller = {
   version: '0.1.0',
-  tag: 'build-0.1.0.15',
-  sha256: '9b348c48b2fe0bdca6e7465820fef90226e88b9651f31143fa675e50efac2d54',
-  url: 'https://github.com/Ding-Ding-Projects/material-tools/releases/download/build-0.1.0.15/MaterialTools-Setup-0.1.0-x64.exe',
+  tag: 'build-0.1.0.16',
+  sha256: '4fe6f78b800a7ec3184df74afca06ba05d1acf6010fedc7ecfbd039a0da615a4',
+  url: 'https://github.com/Ding-Ding-Projects/material-tools/releases/download/build-0.1.0.16/MaterialTools-Setup-0.1.0-x64.exe',
 };
 
 function localized(en: string, yue: string, preferences: Preferences) {
@@ -89,21 +105,47 @@ export default function App() {
   const [masterSearch, setMasterSearch] = useState<SearchState>(emptySearch);
   const [notificationSearch, setNotificationSearch] = useState<SearchState>(emptySearch);
   const [transientRevealGroup, setTransientRevealGroup] = useState<string | null>(null);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const narrowLayout = useMediaQuery('(max-width: 760px), (max-height: 500px) and (max-width: 900px)');
+  const systemDark = useMediaQuery('(prefers-color-scheme: dark)');
   const mainRef = useRef<HTMLElement>(null);
+  const navigationRef = useRef<HTMLElement>(null);
   const paletteRef = useRef<HTMLElement>(null);
   const paletteReturnRef = useRef<HTMLElement | null>(null);
+  const mobileNavButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => saveState(state), [state]);
+
+  useLayoutEffect(() => {
+    document.documentElement.scrollTop = 0;
+    document.documentElement.scrollLeft = 0;
+    document.body.scrollTop = 0;
+    document.body.scrollLeft = 0;
+    if (mainRef.current) {
+      mainRef.current.scrollTop = 0;
+      mainRef.current.scrollLeft = 0;
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (!narrowLayout || !mobileNavOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [mobileNavOpen, narrowLayout]);
 
   useEffect(() => {
     const root = document.documentElement;
     root.dataset.theme = state.preferences.theme;
     root.dataset.density = state.preferences.density;
-    root.style.setProperty('--md-sys-color-primary', state.preferences.accent);
-    root.style.setProperty('--md-sys-color-on-primary', bestContrastingText(state.preferences.accent));
+    const dark = state.preferences.theme === 'dark' || (state.preferences.theme === 'system' && systemDark);
+    const tokens = materialThemeTokens(state.preferences.accent, dark);
+    for (const [name, value] of Object.entries(tokens)) root.style.setProperty(`--md-sys-color-${name}`, value);
+    root.style.colorScheme = dark ? 'dark' : 'light';
     root.style.setProperty('--user-font-scale', String(state.preferences.fontScale));
+    document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.setAttribute('content', tokens.surface);
     document.documentElement.lang = 'en';
-  }, [state.preferences]);
+  }, [state.preferences, systemDark]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -113,6 +155,10 @@ export default function App() {
       }
       if (event.key === 'Escape') {
         if (paletteOpen) closePalette();
+        if (mobileNavOpen) {
+          setMobileNavOpen(false);
+          requestAnimationFrame(() => mobileNavButtonRef.current?.focus());
+        }
         setContextTab(null);
         setGroupPickerTab(null);
         setAppearanceTarget(null);
@@ -120,7 +166,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [paletteOpen]);
+  }, [mobileNavOpen, paletteOpen]);
 
   useEffect(() => {
     const timers = state.notifications
@@ -173,6 +219,21 @@ export default function App() {
     }
   }
 
+  function containMobileNavigationFocus(event: ReactKeyboardEvent<HTMLElement>) {
+    if (!narrowLayout || !mobileNavOpen || event.key !== 'Tab') return;
+    const focusable = [...(navigationRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])') ?? [])];
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
   function updatePreferences(patch: Partial<Preferences>) {
     setState((current) => ({ ...current, preferences: { ...current.preferences, ...patch } }));
   }
@@ -189,13 +250,16 @@ export default function App() {
     setState((current) => ({ ...current, notifications: [notification, ...current.notifications] }));
   }
 
-  function activateTab(tabId: string) {
+  function activateTab(tabId: string, focusPanel = true) {
     setActiveTab(tabId);
+    setMobileNavOpen(false);
     const tab = state.tabs.find((item) => item.id === tabId);
     const group = tab ? state.groups.find((item) => item.id === tab.groupId) : undefined;
     setTransientRevealGroup(group?.collapsed ? group.id : null);
     setPaletteOpen(false);
-    requestAnimationFrame(() => mainRef.current?.focus());
+    requestAnimationFrame(() => {
+      if (focusPanel) mainRef.current?.focus({ preventScroll: true });
+    });
   }
 
   function togglePin(tabId: string) {
@@ -282,7 +346,7 @@ export default function App() {
   ];
 
   function onTabKeyDown(event: ReactKeyboardEvent<HTMLButtonElement>, tab: TabRecord) {
-    const vertical = preferences.dock === 'left' || preferences.dock === 'right';
+    const vertical = narrowLayout || preferences.dock === 'left' || preferences.dock === 'right';
     const previousKey = vertical ? 'ArrowUp' : 'ArrowLeft';
     const nextKey = vertical ? 'ArrowDown' : 'ArrowRight';
     if (event.key !== previousKey && event.key !== nextKey) return;
@@ -290,8 +354,8 @@ export default function App() {
     const index = visibleStripTabs.findIndex((item) => item.id === tab.id);
     const delta = event.key === previousKey ? -1 : 1;
     const target = visibleStripTabs[(index + delta + visibleStripTabs.length) % visibleStripTabs.length];
-    activateTab(target.id);
-    document.getElementById(`tab-${target.id}`)?.focus();
+    activateTab(target.id, false);
+    requestAnimationFrame(() => document.getElementById(`tab-${target.id}`)?.focus());
   }
 
   const paletteCommands = useMemo(() => {
@@ -328,21 +392,45 @@ export default function App() {
           <span><strong>Material Tools</strong><small>{localized('Windows setup, mapped', 'Windows 設定，一目了然', preferences)}</small></span>
         </button>
         <div className="top-app-bar__actions">
+          <button
+            ref={mobileNavButtonRef}
+            type="button"
+            className="icon-button mobile-nav-toggle"
+            aria-label={mobileNavOpen ? 'Close navigation' : 'Open navigation'}
+            aria-controls="feature-navigation"
+            aria-expanded={mobileNavOpen}
+            onClick={() => {
+              const next = !mobileNavOpen;
+              setMobileNavOpen(next);
+              if (next) requestAnimationFrame(() => document.getElementById(`tab-${activeTab}`)?.focus());
+            }}
+          >
+            <span className="mobile-nav-toggle__glyph" aria-hidden="true" />
+          </button>
           <PrivateVocabularyControl compact language={preferences.language} schoolMode={preferences.schoolMode} />
-          <button type="button" className="tonal-button" onClick={() => setDiscoveryOpen((open) => !open)} aria-expanded={discoveryOpen}>
+          <button type="button" className="tonal-button tab-discovery-trigger" onClick={() => setDiscoveryOpen((open) => !open)} aria-expanded={discoveryOpen}>
             Tab discovery
           </button>
-          <button type="button" className="filled-button" onClick={openPalette}>
-            Command palette <kbd>Ctrl+Shift+F</kbd>
+          <button type="button" className="filled-button command-palette-trigger" onClick={openPalette}>
+            <svg className="command-palette-trigger__glyph" aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5 3a6.5 6.5 0 1 0 3.98 11.64L19.85 21 21 19.85l-6.36-6.37A6.5 6.5 0 0 0 9.5 3Zm0 2a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Z" /></svg>
+            <span className="command-palette-trigger__label">Command palette</span> <kbd>Ctrl+Shift+F</kbd>
           </button>
         </div>
       </header>
 
-      <nav className="tab-rail" aria-label="Feature tabs">
+      <nav
+        ref={navigationRef}
+        id="feature-navigation"
+        className={`tab-rail ${mobileNavOpen ? 'is-mobile-open' : ''}`}
+        aria-label="Feature tabs"
+        aria-hidden={narrowLayout && !mobileNavOpen ? true : undefined}
+        inert={narrowLayout && !mobileNavOpen}
+        onKeyDown={containMobileNavigationFocus}
+      >
         <div
           className="tab-rail__list"
           role="tablist"
-          aria-orientation={preferences.dock === 'left' || preferences.dock === 'right' ? 'vertical' : 'horizontal'}
+          aria-orientation={narrowLayout || preferences.dock === 'left' || preferences.dock === 'right' ? 'vertical' : 'horizontal'}
         >
           {orderedTabs.filter((tab) => tab.pinned).map((tab) => (
             <TabButton
@@ -371,7 +459,7 @@ export default function App() {
                   style={{ '--group-color': group.color } as CSSProperties}
                 >
                   <span aria-hidden="true">{groupExpanded ? '−' : '+'}</span>
-                  {localized(group.name, group.nameYue, preferences)}
+                  <span className="tab-group__label">{localized(group.name, group.nameYue, preferences)}</span>
                   <small>{groupTabs.length}</small>
                 </button>
                 {groupExpanded && groupTabs.map((tab) => (
@@ -391,6 +479,10 @@ export default function App() {
           })}
         </div>
       </nav>
+      {mobileNavOpen && <button type="button" className="mobile-nav-scrim" aria-label="Close navigation" onClick={() => {
+        setMobileNavOpen(false);
+        requestAnimationFrame(() => mobileNavButtonRef.current?.focus());
+      }} />}
 
       <main id="main-content" ref={mainRef} tabIndex={-1}>
         {discoveryOpen && (
@@ -417,6 +509,7 @@ export default function App() {
           <OverviewPage
             preferences={preferences}
             state={state}
+            narrowLayout={narrowLayout}
             activateTab={activateTab}
             editAppearance={(target) => setAppearanceTarget(target)}
           />
@@ -559,9 +652,15 @@ function TabButton({ tab, active, preferences, appearance, onActivate, onKeyDown
       >
         <span className="tab-button__icon" aria-hidden="true">{tab.icon}</span>
         <span>{localized(tab.label, tab.labelYue, preferences)}</span>
-        {tab.pinned && <span className="pin-indicator" aria-label="Pinned">P</span>}
+        {tab.pinned && (
+          <span className="pin-indicator" aria-label="Pinned">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M16 3H8v2l1 1v5l-2 2v2h4v6l1 1 1-1v-6h4v-2l-2-2V6l1-1V3Z" /></svg>
+          </span>
+        )}
       </button>
-      <button type="button" className="tab-menu-button" aria-label={`More actions for ${tab.label}`} onClick={onMenu}>⋯</button>
+      <button type="button" className="tab-menu-button" aria-label={`More actions for ${tab.label}`} onClick={onMenu}>
+        <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" /></svg>
+      </button>
     </div>
   );
 }
@@ -624,7 +723,12 @@ function DiscoveryPanel(props: DiscoveryProps) {
   );
 }
 
-function OverviewPage({ preferences, state, activateTab, editAppearance }: { preferences: Preferences; state: PersistedState; activateTab: (id: string) => void; editAppearance: (id: string) => void }) {
+function OverviewPage({ preferences, state, narrowLayout, activateTab, editAppearance }: { preferences: Preferences; state: PersistedState; narrowLayout: boolean; activateTab: (id: string) => void; editAppearance: (id: string) => void }) {
+  const installerProof = localized(
+    `Verified ${verifiedInstaller.tag}. Unsigned installer; SHA-256 ${verifiedInstaller.sha256}.`,
+    `已驗證 ${verifiedInstaller.tag}。安裝程式未簽署；SHA-256 ${verifiedInstaller.sha256}。`,
+    preferences,
+  );
   return (
     <div id="panel-overview" role="tabpanel" aria-labelledby="tab-overview" className="page">
       <section className="hero-card">
@@ -639,13 +743,12 @@ function OverviewPage({ preferences, state, activateTab, editAppearance }: { pre
             <button className="tonal-button" type="button" onClick={() => activateTab('applications')}>Explore the workflow</button>
             <button className="text-button" type="button" onClick={() => activateTab('settings')}>Personalize this site</button>
           </div>
-          <p className="release-proof">
-            {localized(
-              `Verified ${verifiedInstaller.tag}. Unsigned installer; SHA-256 ${verifiedInstaller.sha256}.`,
-              `已驗證 ${verifiedInstaller.tag}。安裝程式未簽署；SHA-256 ${verifiedInstaller.sha256}。`,
-              preferences,
-            )}
-          </p>
+          {narrowLayout ? (
+            <details className="release-proof release-proof--compact">
+              <summary>{localized('Verified unsigned installer details', '已驗證未簽署安裝程式資料', preferences)}</summary>
+              <p>{installerProof}</p>
+            </details>
+          ) : <p className="release-proof">{installerProof}</p>}
         </div>
         <div className="hero-diagram" aria-label="Workflow from applications through delivery">
           <span>Apps</span><i aria-hidden="true">→</i><span>Tweaks</span><i aria-hidden="true">→</i><span>Fixes</span><i aria-hidden="true">→</i><span>Delivery</span>
@@ -751,7 +854,7 @@ function SettingsPage({ state, updatePreferences, notify }: { state: PersistedSt
         {visible.appearance && <section className="settings-card" id="setting-appearance">
           <h2>Appearance</h2>
           <Segmented<ThemeMode> label="Theme" value={p.theme} onChange={(theme) => updatePreferences({ theme })} values={[{ value: 'light', label: 'Light' }, { value: 'dark', label: 'Dark' }, { value: 'system', label: 'System' }]} />
-          <ColorControl label="Accent color" value={p.accent} onChange={(accent) => updatePreferences({ accent })} />
+          <ColorControl label="Accent seed color" value={p.accent} onChange={(accent) => updatePreferences({ accent })} />
           <Segmented label="Density" value={p.density} onChange={(density) => updatePreferences({ density })} values={[{ value: 'comfortable', label: 'Comfortable' }, { value: 'compact', label: 'Compact' }]} />
           <label className="range-field">Text scale <output>{Math.round(p.fontScale * 100)}%</output><input aria-label="Text scale" type="range" min="0.9" max="1.3" step="0.05" value={p.fontScale} onChange={(event) => updatePreferences({ fontScale: Number(event.target.value) })} /></label>
         </section>}

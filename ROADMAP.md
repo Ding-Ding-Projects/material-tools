@@ -9,6 +9,8 @@
 - [x] App-local private-vocabulary upload, validation, application, and clear path without repository or network disclosure.
 - [x] Package and drive the first real unsigned Squirrel.Windows installer.
 - [x] Capture every implemented foundation surface from the built artifact.
+- [x] Give every current feature page and implemented dialog, popover, notification, and nested vocabulary surface its own bundled action illustration.
+- [x] Derive Material Design 3 tonal roles from the saved accent seed and enforce 48 px interaction targets on the touched desktop surfaces.
 
 ## 0.2 — application management parity
 
@@ -33,6 +35,7 @@
 ## Cross-cutting shared contract
 
 - [x] Publish and visually capture the initial mobile-friendly GitHub Pages foundation.
+- [x] Repair the documentation site's 320 px, 390 px, and short-landscape layouts with a Material Design 3 drawer, private-vocabulary bottom sheet, focus restoration, and local iconography.
 - [ ] Complete the hand-written universal-feature inventory across app and documentation site.
 - [ ] Finish tabs, groups, locks, appearance editors, schedules, history, exports, authenticator, narration, updater, offline docs, changelog, notifications, and dim-sum behavior.
 - [ ] Publish the complete mobile-friendly GitHub Pages site with one article and real capture set per feature.

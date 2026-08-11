@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type Dispatch, type SetStateAction } from 'react';
 import type { SystemSummary } from '../shared/contracts';
+import { ACTION_ILLUSTRATION_BINDINGS, type FeaturePageIllustrationId } from './action-illustrations';
+import { ActionIllustration } from './components/ActionIllustration';
 import {
   applyPrivateVocabulary,
   loadPrivateVocabulary,
@@ -9,10 +11,11 @@ import {
   type PrivateVocabularyFile,
 } from './lib/private-vocabulary';
 import { evaluateSearch, type SearchOptions } from './lib/search';
+import { materialThemeCssVariables } from './lib/material-theme';
 import { applySetting, type FoundationSettings } from './lib/settings';
 
 type LanguageMode = FoundationSettings['language'];
-type TabId = 'overview' | 'install' | 'tweaks' | 'config' | 'updates' | 'microwin' | 'settings';
+type TabId = FeaturePageIllustrationId;
 type AppSettings = FoundationSettings;
 type CopyTransform = (value: string) => string;
 
@@ -25,6 +28,7 @@ interface NotificationItem {
 
 interface TabDefinition {
   id: TabId;
+  illustrationId: FeaturePageIllustrationId;
   title: string;
   cantoneseTitle: string;
   description: string;
@@ -52,13 +56,13 @@ const DEFAULT_SETTINGS: AppSettings = {
 };
 
 const TABS: TabDefinition[] = [
-  { id: 'overview', title: 'Overview', cantoneseTitle: '總覽', description: 'Live, read-only system summary and project status.', cantoneseDescription: '即時唯讀系統摘要同工程狀態。', status: 'ready' },
-  { id: 'install', title: 'Install', cantoneseTitle: '安裝', description: 'Application install, upgrade, removal, presets, and package-manager selection.', cantoneseDescription: '應用程式安裝、升級、移除、預設組合，同套件管理器選擇。', status: 'planned' },
-  { id: 'tweaks', title: 'Tweaks', cantoneseTitle: '系統調整', description: 'Previewable, reversible registry, service, privacy, and interface changes.', cantoneseDescription: '可預覽同還原嘅登錄、服務、私隱同介面調整。', status: 'planned' },
-  { id: 'config', title: 'Config', cantoneseTitle: '設定工具', description: 'Features, repairs, legacy panels, DNS, AppX, and PowerShell profile operations.', cantoneseDescription: '功能、修復、傳統控制台、DNS、AppX 同 PowerShell 設定檔操作。', status: 'planned' },
-  { id: 'updates', title: 'Updates', cantoneseTitle: '更新', description: 'Windows Update policy modes with explicit impact and rollback.', cantoneseDescription: '清楚列明影響同還原方法嘅 Windows Update 原則模式。', status: 'planned' },
-  { id: 'microwin', title: 'MicroWin', cantoneseTitle: '精簡安裝媒體', description: 'Copy-based ISO inspection and unattended-media creation without modifying originals.', cantoneseDescription: '用副本檢查 ISO 同建立無人值守媒體，唔會改原檔。', status: 'planned' },
-  { id: 'settings', title: 'Settings', cantoneseTitle: '設定', description: 'Language, voice, appearance, accessibility, and application identity.', cantoneseDescription: '語言、語氣、外觀、無障礙同應用程式顯示名稱。', status: 'ready' },
+  { id: 'overview', illustrationId: ACTION_ILLUSTRATION_BINDINGS.featurePages.overview, title: 'Overview', cantoneseTitle: '總覽', description: 'Live, read-only system summary and project status.', cantoneseDescription: '即時唯讀系統摘要同工程狀態。', status: 'ready' },
+  { id: 'install', illustrationId: ACTION_ILLUSTRATION_BINDINGS.featurePages.install, title: 'Install', cantoneseTitle: '安裝', description: 'Application install, upgrade, removal, presets, and package-manager selection.', cantoneseDescription: '應用程式安裝、升級、移除、預設組合，同套件管理器選擇。', status: 'planned' },
+  { id: 'tweaks', illustrationId: ACTION_ILLUSTRATION_BINDINGS.featurePages.tweaks, title: 'Tweaks', cantoneseTitle: '系統調整', description: 'Previewable, reversible registry, service, privacy, and interface changes.', cantoneseDescription: '可預覽同還原嘅登錄、服務、私隱同介面調整。', status: 'planned' },
+  { id: 'config', illustrationId: ACTION_ILLUSTRATION_BINDINGS.featurePages.config, title: 'Config', cantoneseTitle: '設定工具', description: 'Features, repairs, legacy panels, DNS, AppX, and PowerShell profile operations.', cantoneseDescription: '功能、修復、傳統控制台、DNS、AppX 同 PowerShell 設定檔操作。', status: 'planned' },
+  { id: 'updates', illustrationId: ACTION_ILLUSTRATION_BINDINGS.featurePages.updates, title: 'Updates', cantoneseTitle: '更新', description: 'Windows Update policy modes with explicit impact and rollback.', cantoneseDescription: '清楚列明影響同還原方法嘅 Windows Update 原則模式。', status: 'planned' },
+  { id: 'microwin', illustrationId: ACTION_ILLUSTRATION_BINDINGS.featurePages.microwin, title: 'MicroWin', cantoneseTitle: '精簡安裝媒體', description: 'Copy-based ISO inspection and unattended-media creation without modifying originals.', cantoneseDescription: '用副本檢查 ISO 同建立無人值守媒體，唔會改原檔。', status: 'planned' },
+  { id: 'settings', illustrationId: ACTION_ILLUSTRATION_BINDINGS.featurePages.settings, title: 'Settings', cantoneseTitle: '設定', description: 'Language, voice, appearance, accessibility, and application identity.', cantoneseDescription: '語言、語氣、外觀、無障礙同應用程式顯示名稱。', status: 'ready' },
 ];
 
 function loadSettings(): AppSettings {
@@ -94,11 +98,12 @@ function formatBytes(value: number): string {
   return `${(value / 1024 ** 3).toFixed(1)} GB`;
 }
 
-function SearchBuilder({ options, onChange, copy }: { options: SearchOptions; onChange: (next: SearchOptions) => void; copy: CopyTransform }) {
+function SearchBuilder({ options, onChange, copy, language }: { options: SearchOptions; onChange: (next: SearchOptions) => void; copy: CopyTransform; language: LanguageMode }) {
   return (
     <details className="regex-builder">
       <summary aria-label={copy('Open regular expression builder')}>.*</summary>
       <div className="popover-surface" aria-label={copy('Regular expression builder')}>
+        <ActionIllustration id={ACTION_ILLUSTRATION_BINDINGS.surfaces.regexBuilder} language={language} copy={copy} variant="popover" />
         <strong>{copy('Search mode')}</strong>
         <label><input type="checkbox" checked={options.regex} onChange={(event) => onChange({ ...options, regex: event.target.checked })} /> {copy('Regular expression')}</label>
         <label><input type="checkbox" checked={options.caseSensitive} onChange={(event) => onChange({ ...options, caseSensitive: event.target.checked })} /> {copy('Case sensitive')}</label>
@@ -141,6 +146,7 @@ function Overview({ settings, summary, copy }: { settings: AppSettings; summary:
         <span className="status-chip status-ready">{copy(summary.captureFixture ? 'Fixture' : 'Live')}</span>
       </div>
       <p className="lede">{copy(summary.captureFixture ? 'This deterministic capture uses non-device-specific values.' : welcomeCopy(settings))}</p>
+      <ActionIllustration id={ACTION_ILLUSTRATION_BINDINGS.featurePages.overview} language={settings.language} copy={copy} loading="eager" />
       <dl className="fact-grid">
         {facts.map(([label, value]) => <div className="fact" key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
       </dl>
@@ -160,6 +166,7 @@ function CapabilityPage({ tab, settings, copy }: { tab: TabDefinition; settings:
         <span className="status-chip status-planned">{copy('Not available yet')}</span>
       </div>
       <p className="lede">{copy(localized(tab.description, tab.cantoneseDescription, settings.language))}</p>
+      <ActionIllustration id={tab.illustrationId} language={settings.language} copy={copy} />
       <div className="empty-state">
         <strong>{copy('No executable actions are shipped in this foundation build.')}</strong>
         <span>{copy('The catalog, validation rules, and least-privileged executor for this lane are the next implementation milestone.')}</span>
@@ -203,6 +210,7 @@ function SettingsPage({
   return (
     <section aria-labelledby="settings-title">
       <div className="section-heading"><div><p className="eyebrow">{copy('Persisted locally')}</p><h1 id="settings-title">{copy('Settings')}</h1></div><span className="status-chip status-ready">{copy('Active')}</span></div>
+      <ActionIllustration id={ACTION_ILLUSTRATION_BINDINGS.featurePages.settings} language={settings.language} copy={copy} />
       <div className="settings-stack">
         <fieldset id="setting-display-name">
           <legend>{copy('Application display name')}</legend>
@@ -237,6 +245,7 @@ function SettingsPage({
         </fieldset>
         <fieldset id="setting-private-vocabulary">
           <legend>{copy('Private vocabulary')}</legend>
+          <ActionIllustration id={ACTION_ILLUSTRATION_BINDINGS.surfaces.privateVocabulary} language={settings.language} copy={copy} variant="setting" />
           <p id="private-vocabulary-help">{copy('Upload a versioned JSON file to replace approved user-interface wording locally. The file is validated in this app, cached only in local browser storage, and never sent over the network, logged, exported, or copied into the application package.')}</p>
           <label>{copy('Choose private vocabulary JSON')}
             <input type="file" accept=".json,application/json" aria-describedby="private-vocabulary-help private-vocabulary-status" onChange={(event) => { void uploadVocabulary(event); }} />
@@ -270,7 +279,8 @@ function CommandPalette({ open, onClose, onNavigate, settings, copy }: { open: b
     <div className="palette-scrim" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose(); }}>
       <section className="command-palette" role="dialog" aria-modal="true" aria-labelledby="palette-title">
         <div className="palette-heading"><div><p className="eyebrow">Ctrl+Shift+F</p><h2 id="palette-title">{copy('Command palette')}</h2></div><button type="button" aria-label={copy('Close command palette')} onClick={onClose}>×</button></div>
-        <div className="search-composite"><input ref={inputRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={copy('Search every destination and setting')} aria-label={copy('Command palette search')} /><SearchBuilder options={options} onChange={setOptions} copy={copy} /></div>
+        <ActionIllustration id={ACTION_ILLUSTRATION_BINDINGS.surfaces.commandPalette} language={settings.language} copy={copy} variant="dialog" loading="eager" />
+        <div className="search-composite"><input ref={inputRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={copy('Search every destination and setting')} aria-label={copy('Command palette search')} /><SearchBuilder options={options} onChange={setOptions} copy={copy} language={settings.language} /></div>
         <div className="command-results" role="listbox" aria-label={copy(`${commands.length} command results`)}>
           {commands.map((command) => <button type="button" role="option" key={command.id} onClick={() => { onNavigate(command.tab, command.target); onClose(); }}><strong>{command.label}</strong><span>{command.context}</span></button>)}
           {commands.length === 0 && <div className="empty-state">{copy('No commands match this search.')}</div>}
@@ -319,18 +329,22 @@ export function App() {
 
   const visibleTabs = TABS.filter((tab) => evaluateSearch(tabSearch, copy(`${tab.title} ${tab.cantoneseTitle} ${tab.description} ${tab.cantoneseDescription}`), searchOptions).matched);
   const current = TABS.find((tab) => tab.id === activeTab) ?? TABS[0];
+  const themeVariables = useMemo(
+    () => materialThemeCssVariables(settings.accent, settings.theme === 'dark'),
+    [settings.accent, settings.theme],
+  );
   const navigate = (tab: TabId, target?: string) => {
     setActiveTab(tab);
     if (target) window.setTimeout(() => document.getElementById(target)?.focus({ preventScroll: false }), 0);
   };
 
   return (
-    <div className="app-shell" data-theme={settings.theme} data-density={settings.density} style={{ '--seed-color': settings.accent } as React.CSSProperties}>
+    <div className="app-shell" data-theme={settings.theme} data-density={settings.density} style={themeVariables as React.CSSProperties}>
       <TitleBar name={settings.displayName} copy={copy} />
       <div className="workspace">
         <aside className="tab-rail">
           <div className="rail-heading"><strong>{copy(settings.displayName)}</strong><button type="button" onClick={() => setPaletteOpen(true)} aria-label={copy('Open command palette')}>⌕</button></div>
-          <div className="search-composite rail-search"><input value={tabSearch} onChange={(event) => setTabSearch(event.target.value)} placeholder={copy('Search tabs')} aria-label={copy('Search current tab strip')} /><SearchBuilder options={searchOptions} onChange={setSearchOptions} copy={copy} /></div>
+          <div className="search-composite rail-search"><input value={tabSearch} onChange={(event) => setTabSearch(event.target.value)} placeholder={copy('Search tabs')} aria-label={copy('Search current tab strip')} /><SearchBuilder options={searchOptions} onChange={setSearchOptions} copy={copy} language={settings.language} /></div>
           <nav role="tablist" aria-orientation="vertical" aria-label={copy('Primary destinations')}>
             {visibleTabs.map((tab) => (
               <button type="button" role="tab" aria-selected={activeTab === tab.id} key={tab.id} onClick={() => setActiveTab(tab.id)}>
@@ -349,7 +363,7 @@ export function App() {
         </main>
       </div>
       <div className="toast-region" aria-live="polite" aria-label={copy('Notifications')}>
-        {notifications.map((item) => <article className={`toast ${item.tone}`} key={item.id}><div><strong>{copy(item.title)}</strong><p>{copy(item.body)}</p></div><button type="button" aria-label={copy(`Dismiss ${item.title}`)} onClick={() => setNotifications((items) => items.filter((candidate) => candidate.id !== item.id))}>×</button></article>)}
+        {notifications.map((item) => <article className={`toast ${item.tone}`} key={item.id}><ActionIllustration id={ACTION_ILLUSTRATION_BINDINGS.surfaces.notifications} language={settings.language} copy={copy} variant="notification" loading="eager" /><div className="toast__copy"><strong>{copy(item.title)}</strong><p>{copy(item.body)}</p></div><button type="button" aria-label={copy(`Dismiss ${item.title}`)} onClick={() => setNotifications((items) => items.filter((candidate) => candidate.id !== item.id))}>×</button></article>)}
       </div>
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onNavigate={navigate} settings={settings} copy={copy} />
     </div>

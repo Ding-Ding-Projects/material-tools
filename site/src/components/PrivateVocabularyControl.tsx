@@ -1,4 +1,4 @@
-import { type ChangeEvent, useEffect, useRef, useState } from 'react';
+import { type ChangeEvent, type KeyboardEvent as ReactKeyboardEvent, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   applyPrivateVocabulary,
   cachePrivateVocabulary,
@@ -23,7 +23,11 @@ export function PrivateVocabularyControl({ compact = false, language = 'en', sch
   const [document, setDocument] = useState<PrivateVocabularyDocument | null>(() => loadPrivateVocabulary());
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [compactOpen, setCompactOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const compactTriggerRef = useRef<HTMLButtonElement>(null);
+  const compactPanelRef = useRef<HTMLDivElement>(null);
+  const compactWasOpenRef = useRef(false);
   const activeLanguage = schoolMode ? 'en' : language;
   const text = (english: string, cantonese: string) => activeLanguage === 'yue' ? cantonese : activeLanguage === 'both' ? `${english} · ${cantonese}` : english;
   const visibleError = error ? text(error, '檔案未能通過版本、格式或者大小驗證。') : null;
@@ -33,6 +37,12 @@ export function PrivateVocabularyControl({ compact = false, language = 'en', sch
     window.addEventListener(PRIVATE_VOCABULARY_CHANGE_EVENT, synchronize);
     return () => window.removeEventListener(PRIVATE_VOCABULARY_CHANGE_EVENT, synchronize);
   }, []);
+
+  useLayoutEffect(() => {
+    if (compactOpen) inputRef.current?.focus();
+    else if (compactWasOpenRef.current) compactTriggerRef.current?.focus();
+    compactWasOpenRef.current = compactOpen;
+  }, [compactOpen]);
 
   async function onFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -67,15 +77,85 @@ export function PrivateVocabularyControl({ compact = false, language = 'en', sch
     if (inputRef.current) inputRef.current.value = '';
   }
 
+  function closeCompact() {
+    setCompactOpen(false);
+  }
+
+  function onCompactKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeCompact();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const focusable = [...(compactPanelRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled])') ?? [])];
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && globalThis.document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && globalThis.document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
   if (compact) {
+    const status = visibleError ?? (document ? text('Loaded locally', '只喺本機載入') : text('Original wording', '使用原本文案'));
+    const compactStatus = visibleError
+      ? text('Check file', '檢查檔案')
+      : document
+        ? text('Loaded', '已載入')
+        : text('Original', '原文');
     return (
       <section className="private-vocabulary-quick" aria-label={text('Private vocabulary upload', '私人詞彙上載')}>
-        <label className="private-vocabulary-quick__upload">
-          <span>{text('Private vocabulary JSON', '私人詞彙 JSON')}</span>
-          <input ref={inputRef} type="file" accept="application/json,.json" aria-label={text('Upload private vocabulary JSON file', '上載私人詞彙 JSON 檔案')} onChange={onFile} />
-        </label>
-        <span className="private-vocabulary-quick__state" aria-live="polite">{visibleError ?? (document ? text('Loaded locally', '只喺本機載入') : text('Original wording', '使用原本文案'))}</span>
-        <button type="button" className="text-button" onClick={clear} disabled={!document && !error}>{text('Clear', '清除')}</button>
+        <button
+          ref={compactTriggerRef}
+          type="button"
+          className="tonal-button private-vocabulary-quick__trigger"
+          aria-haspopup="dialog"
+          aria-expanded={compactOpen}
+          aria-controls="private-vocabulary-quick-panel"
+          aria-label={`${text('Private vocabulary', '私人詞彙')}: ${status}`}
+          onClick={() => setCompactOpen(true)}
+        >
+          <span className="private-vocabulary-quick__badge" aria-hidden="true">JSON</span>
+          <span className="private-vocabulary-quick__state" aria-live="polite">{compactStatus}</span>
+        </button>
+        {compactOpen && (
+          <>
+            <button type="button" className="private-vocabulary-quick__scrim" aria-label={text('Close private vocabulary panel', '關閉私人詞彙面板')} onClick={closeCompact} />
+            <div
+              ref={compactPanelRef}
+              id="private-vocabulary-quick-panel"
+              className="private-vocabulary-quick__panel"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="private-vocabulary-quick-heading"
+              onKeyDown={onCompactKeyDown}
+            >
+              <header>
+                <div>
+                  <span className="eyebrow">{text('Local-only setting', '只限本機設定')}</span>
+                  <h2 id="private-vocabulary-quick-heading">{text('Private vocabulary', '私人詞彙')}</h2>
+                </div>
+                <button type="button" className="text-button" onClick={closeCompact}>{text('Close', '關閉')}</button>
+              </header>
+              <p>{text('Choose a validated version 1 JSON file up to 64 KiB. It stays only in this browser.', '揀選最多 64 KiB 嘅已驗證版本 1 JSON 檔案。內容只留喺呢個瀏覽器。')}</p>
+              <label className="private-vocabulary-quick__upload">
+                <span>{text('Choose private vocabulary JSON', '揀選私人詞彙 JSON')}</span>
+                <input ref={inputRef} type="file" accept="application/json,.json" aria-label={text('Upload private vocabulary JSON file', '上載私人詞彙 JSON 檔案')} onChange={onFile} />
+              </label>
+              <div className="private-vocabulary-control__status" aria-live="polite">
+                <strong>{status}</strong>
+                <p>{message ?? (document ? text('A validated private browser cache is active.', '已啟用通過驗證嘅私人瀏覽器快取。') : text('No file is loaded, so shipped wording remains unchanged.', '未載入檔案，所以出廠文案保持不變。'))}</p>
+              </div>
+              {visibleError && <p className="field-error" role="alert">{visibleError}</p>}
+              <button type="button" className="text-button" onClick={clear} disabled={!document && !error}>{text('Clear local vocabulary', '清除本機私人詞彙')}</button>
+            </div>
+          </>
+        )}
       </section>
     );
   }
