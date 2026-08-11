@@ -2,6 +2,8 @@
 
 The release workflow publishes each uniquely tagged build with its exact commit, unsigned-installer warning, public dim-sum catalog link, asset hashes, workflow timing, and committed line-count table.
 
+The `push` trigger is explicitly limited to branches. Tags created by the release step do not trigger another release run, preventing a release-created tag from becoming an automation loop.
+
 ## Generation contract
 
 Release notes use a literal PowerShell template with explicit placeholders. The workflow replaces every placeholder only after it has built and re-downloaded the installer, then edits the release and reads the body back. Publication fails if any placeholder or PowerShell expression remains unresolved, or if an expected filename, hash, timestamp, duration, or catalog filename is absent.

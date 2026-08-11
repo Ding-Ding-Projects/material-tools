@@ -15,6 +15,7 @@ The repository is being initialized from an empty baseline into a Windows Electr
 - First release: [`build-0.1.0.1`](https://github.com/Ding-Ding-Projects/material-tools/releases/tag/build-0.1.0.1) targets the foundation commit and carries the unsigned setup executable, full package, and Squirrel.Windows update index.
 - The first release notes initially exposed unresolved PowerShell expressions. The public notes were repaired and read back; the workflow now uses literal placeholders plus a post-publication completeness check.
 - Hidden-desktop inspection found that the first released renderer was blank because its sandboxed preload retained an unsupported local module import. The build now bundles the preload, validates its channel surface, and allows only exact same-document reload navigation. A corrected installer is locally built and unsigned; published-artifact captures remain pending the correction dew.
+- The initial workflow listened to unfiltered pushes, so each release tag triggered another release. The active tag-triggered run was cancelled, and the workflow plus local contract check now restrict push-triggered publication to branches. The accidental release inventory must remain visible until final release cleanup is reviewed.
 
 ## Remaining work
 

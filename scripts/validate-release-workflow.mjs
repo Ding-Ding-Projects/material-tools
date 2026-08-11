@@ -5,6 +5,7 @@ const workflowUrl = new URL('../.github/workflows/release.yml', import.meta.url)
 const workflow = readFileSync(workflowUrl, 'utf8').replaceAll('\r\n', '\n');
 
 const requiredFragments = [
+  'push:\n    branches:\n      - "**"',
   'Publish and verify one unique release',
   "--notes 'Release evidence is being finalized by this workflow.'",
   "gh release edit $env:RELEASE_TAG --notes-file release-notes.md",
