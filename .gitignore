@@ -1,0 +1,12 @@
+node_modules/
+dist/
+dist-electron/
+coverage/
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+test-results/
+screenshots/generated/
