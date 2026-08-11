@@ -10,6 +10,7 @@ Material Tools is a Windows Electron application being built to provide full beh
 - Build the unsigned Squirrel.Windows installer: `build-installer.bat`
 - Silent automation mode: `build.bat /s` or `build-installer.bat /s`
 - Documentation: [docs/README.md](docs/README.md)
+- Interactive documentation site source: [site/README.md](site/README.md)
 - Delivery plan: [ROADMAP.md](ROADMAP.md)
 - Current handoff: [HANDOFF.md](HANDOFF.md)
 
