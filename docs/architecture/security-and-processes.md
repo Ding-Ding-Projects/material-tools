@@ -8,7 +8,7 @@ Future privileged operations accept typed catalog identifiers and validated para
 
 ## Configuration
 
-The `webPreferences` contract requires `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`, and `webSecurity: true`. External links are denied in-app and opened only when they use HTTPS.
+The `webPreferences` contract requires `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`, and `webSecurity: true`. External links are denied in-app and opened only when they use HTTPS. The preload is bundled into one CommonJS file because a sandboxed preload cannot load arbitrary neighboring modules; `npm run check:preload` rejects a compiled bridge that retains local `require` calls or loses any allowed channel.
 
 ## Failure modes
 
@@ -22,7 +22,7 @@ The application is unsigned by policy. Elevation must be short-lived and operati
 
 ## Verification
 
-Run `npm run check`, inspect the compiled BrowserWindow preferences, and drive the built artifact on the approved hidden desktop. Unit tests alone do not prove preload wiring.
+Run `npm run check`, inspect the compiled BrowserWindow preferences, and drive the built artifact on the approved hidden desktop. The preload check was deliberately run against the original unbundled output and failed before the bundled output passed. Unit tests alone do not prove preload wiring.
 
 ## Suggested articles
 

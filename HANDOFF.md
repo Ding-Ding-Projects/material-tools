@@ -10,11 +10,16 @@ The repository is being initialized from an empty baseline into a Windows Electr
 - Upstream capability pin: `ChrisTitusTech/winutil@ea5de27b6c66fe4f4a4c6513887d0fe5a1cd8bff`.
 - Foundation verification command: `npm run check`.
 - Current local result: 1 test file and 4 tests passed; TypeScript and production renderer/main builds passed.
+- Foundation commit: `c91398b6aa9c4d11863c0540e5cc9f546b3dd728` is verified on `origin/main`.
+- First release run: [31536631258](https://github.com/Ding-Ding-Projects/material-tools/actions/runs/31536631258) completed successfully.
+- First release: [`build-0.1.0.1`](https://github.com/Ding-Ding-Projects/material-tools/releases/tag/build-0.1.0.1) targets the foundation commit and carries the unsigned setup executable, full package, and Squirrel.Windows update index.
+- The first release notes initially exposed unresolved PowerShell expressions. The public notes were repaired and read back; the workflow now uses literal placeholders plus a post-publication completeness check.
+- Hidden-desktop inspection found that the first released renderer was blank because its sandboxed preload retained an unsupported local module import. The build now bundles the preload, validates its channel surface, and allows only exact same-document reload navigation. A corrected installer is locally built and unsigned; published-artifact captures remain pending the correction dew.
 
 ## Remaining work
 
-System-changing operations, installer proof, built-artifact captures, full universal features, documentation site, release automation, release, remote verification, and final repository cleanup remain incomplete. Do not describe the product as WinUtil-equivalent until every capability-matrix row has direct behavioral proof.
+System-changing operations, built-artifact captures, full universal features, the complete documentation site, final release verification, and repository cleanup remain incomplete. Do not describe the product as WinUtil-equivalent until every capability-matrix row has direct behavioral proof.
 
 ## Next action
 
-Verify the initial scaffold on the remote, then implement the pinned catalog schemas and real application-management executor as the first consequential vertical slice.
+Land and verify the release-evidence correction, then implement the pinned catalog schemas and real application-management executor as the first consequential vertical slice.

@@ -11,7 +11,7 @@
   },
   "scripts": {
     "clean": "node scripts/clean.mjs",
-    "build:main": "tsc -p tsconfig.main.json",
+    "build:main": "tsc -p tsconfig.main.json && node scripts/bundle-preload.mjs",
     "build:renderer": "vite build",
     "build": "npm run clean && npm run build:main && npm run build:renderer",
     "start": "npm run build && electron .",
@@ -19,7 +19,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.renderer.json --noEmit",
-    "check": "npm run typecheck && npm test && npm run build",
+    "check:preload": "node scripts/validate-preload-bundle.mjs",
+    "check:release-workflow": "node scripts/validate-release-workflow.mjs",
+    "check": "npm run check:release-workflow && npm run typecheck && npm test && npm run build && npm run check:preload",
+    "capture:ui": "node scripts/capture-ui.mjs",
     "dist": "npm run build && electron-builder --win squirrel --publish never"
   },
   "build": {
@@ -62,6 +65,7 @@
     "electron": "43.4.0",
     "electron-builder": "26.15.3",
     "electron-builder-squirrel-windows": "26.15.3",
+    "esbuild": "0.28.2",
     "typescript": "7.0.2",
     "vite": "8.2.1",
     "vitest": "4.1.10"

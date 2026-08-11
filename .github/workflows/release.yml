@@ -94,7 +94,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-      - name: Publish and verify one immutable release
+      - name: Publish and verify one unique release
         shell: pwsh
         run: |
           $setup = Get-ChildItem dist\squirrel-windows -Filter '*Setup*.exe' -File | Select-Object -First 1
@@ -103,20 +103,33 @@ jobs:
           if (-not $setup -or -not $package -or -not $releaseIndex) { throw 'Required Squirrel.Windows assets are missing.' }
           $setupHash = (Get-FileHash -Algorithm SHA256 $setup.FullName).Hash
           $packageHash = (Get-FileHash -Algorithm SHA256 $package.FullName).Hash
-          $publishedAt = (Get-Date).ToUniversalTime()
-          $startedAt = [DateTimeOffset]::Parse($env:WORKFLOW_STARTED).UtcDateTime
+          $lineCount = Get-Content -Raw line-count.md
+
+          gh release create $env:RELEASE_TAG $setup.FullName $package.FullName $releaseIndex.FullName --target $env:GITHUB_SHA --title "Material Tools $env:RELEASE_VERSION · $env:RELEASE_DISH_NAME" --notes 'Release evidence is being finalized by this workflow.'
+          $release = gh release view $env:RELEASE_TAG --json tagName,targetCommitish,isDraft,isPrerelease,publishedAt,assets,url | ConvertFrom-Json
+          if ($release.isDraft -or $release.isPrerelease) { throw 'Release was not published as a final non-draft release.' }
+          if ($release.targetCommitish -ne $env:GITHUB_SHA) { throw 'Release target does not match the workflow commit.' }
+          if ($release.assets.Count -ne 3) { throw "Expected 3 release assets, found $($release.assets.Count)." }
+          New-Item -ItemType Directory -Force release-download | Out-Null
+          gh release download $env:RELEASE_TAG --pattern $setup.Name --dir release-download
+          $downloadHash = (Get-FileHash -Algorithm SHA256 (Join-Path release-download $setup.Name)).Hash
+          if ($downloadHash -ne $setupHash) { throw 'Downloaded installer hash does not match the built installer.' }
+
+          $run = gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID" | ConvertFrom-Json
+          $startedAt = [DateTimeOffset]::Parse($run.run_started_at).UtcDateTime
+          $publishedAt = [DateTimeOffset]::Parse($release.publishedAt).UtcDateTime
           $duration = $publishedAt - $startedAt
           $durationText = '{0:00}:{1:00}:{2:00}' -f [math]::Floor($duration.TotalHours), $duration.Minutes, $duration.Seconds
-          $completedText = $publishedAt.ToString('o')
-          $lineCount = Get-Content -Raw line-count.md
-          @"
-          # Material Tools $env:RELEASE_VERSION
+          $startedText = $startedAt.ToString('yyyy-MM-ddTHH:mm:ssZ')
+          $completedText = $publishedAt.ToString('yyyy-MM-ddTHH:mm:ssZ')
+          $template = @'
+          # Material Tools __VERSION__
 
-          **Commit:** `${{ github.sha }}`
+          **Commit:** `__COMMIT__`
 
-          **Dim-sum code name:** [$env:RELEASE_DISH_NAME]($env:RELEASE_DISH_URL)
+          **Dim-sum code name:** [__DISH_NAME__](__DISH_URL__)
 
-          **Public photo asset:** `$env:RELEASE_DISH_FILE`
+          **Public photo asset:** `__DISH_FILE__`
 
           > [!WARNING]
           > The Windows installer and update packages are intentionally unsigned. Windows may show an unknown-publisher or SmartScreen warning. Verify the SHA-256 digest below before running the installer.
@@ -125,34 +138,53 @@ jobs:
 
           | Asset | SHA-256 |
           |---|---|
-          | `$($setup.Name)` | `$setupHash` |
-          | `$($package.Name)` | `$packageHash` |
+          | `__SETUP_NAME__` | `__SETUP_HASH__` |
+          | `__PACKAGE_NAME__` | `__PACKAGE_HASH__` |
           | `RELEASES` | Squirrel.Windows update index |
 
           ## Verification
 
           - Local checks recorded before the push: TypeScript, 4 unit tests, production build, root build script, Squirrel.Windows packaging, required-asset presence, and `NotSigned` verification.
           - GitHub Actions intentionally ran no tests, lint, type checks, static analysis, accessibility checks, or screenshot gates. A release can therefore publish even if a later local check would fail; this is the repository's accepted delivery policy.
-          - Build and packaging completed on `${{ runner.name }}` (`${{ runner.os }}` / `${{ runner.arch }}`).
+          - Build and packaging completed on __RUNNER_NAME__ (`__RUNNER_OS__` / `__RUNNER_ARCH__`).
+          - The published installer was downloaded again and its SHA-256 matched the built installer.
 
           ## Workflow timing
 
-          - Workflow started: `$env:WORKFLOW_STARTED`
-          - Workflow completed: `$completedText`
-          - Workflow duration: `$durationText`
+          - Workflow started: `__STARTED__`
+          - Workflow completed: `__COMPLETED__`
+          - Workflow duration: `__DURATION__`
 
           ## Line count
 
-          Reproduce with `node scripts/count-lines.mjs` at `${{ github.sha }}`.
+          Reproduce with `node scripts/count-lines.mjs` at `__COMMIT__`.
 
-          $lineCount
-          "@ | Out-File release-notes.md -Encoding utf8
+          __LINE_COUNT__
+          '@
+          $notes = $template.Replace('__VERSION__', $env:RELEASE_VERSION)
+          $notes = $notes.Replace('__COMMIT__', $env:GITHUB_SHA)
+          $notes = $notes.Replace('__DISH_NAME__', $env:RELEASE_DISH_NAME)
+          $notes = $notes.Replace('__DISH_URL__', $env:RELEASE_DISH_URL)
+          $notes = $notes.Replace('__DISH_FILE__', $env:RELEASE_DISH_FILE)
+          $notes = $notes.Replace('__SETUP_NAME__', $setup.Name)
+          $notes = $notes.Replace('__SETUP_HASH__', $setupHash)
+          $notes = $notes.Replace('__PACKAGE_NAME__', $package.Name)
+          $notes = $notes.Replace('__PACKAGE_HASH__', $packageHash)
+          $notes = $notes.Replace('__RUNNER_NAME__', $env:RUNNER_NAME)
+          $notes = $notes.Replace('__RUNNER_OS__', $env:RUNNER_OS)
+          $notes = $notes.Replace('__RUNNER_ARCH__', $env:RUNNER_ARCH)
+          $notes = $notes.Replace('__STARTED__', $startedText)
+          $notes = $notes.Replace('__COMPLETED__', $completedText)
+          $notes = $notes.Replace('__DURATION__', $durationText)
+          $notes = $notes.Replace('__LINE_COUNT__', $lineCount.TrimEnd())
+          [System.IO.File]::WriteAllText((Join-Path $PWD 'release-notes.md'), $notes, [System.Text.UTF8Encoding]::new($false))
+          gh release edit $env:RELEASE_TAG --notes-file release-notes.md
 
-          gh release create $env:RELEASE_TAG $setup.FullName $package.FullName $releaseIndex.FullName --target '${{ github.sha }}' --title "Material Tools $env:RELEASE_VERSION · $env:RELEASE_DISH_NAME" --notes-file release-notes.md
-          $release = gh release view $env:RELEASE_TAG --json tagName,targetCommitish,isDraft,isPrerelease,assets,url | ConvertFrom-Json
-          if ($release.isDraft -or $release.isPrerelease) { throw 'Release was not published as a final non-draft release.' }
-          if ($release.assets.Count -ne 3) { throw "Expected 3 release assets, found $($release.assets.Count)." }
-          New-Item -ItemType Directory -Force release-download | Out-Null
-          gh release download $env:RELEASE_TAG --pattern $setup.Name --dir release-download
-          $downloadHash = (Get-FileHash -Algorithm SHA256 (Join-Path release-download $setup.Name)).Hash
-          if ($downloadHash -ne $setupHash) { throw 'Downloaded installer hash does not match the built installer.' }
+          $published = gh release view $env:RELEASE_TAG --json body | ConvertFrom-Json
+          $unresolved = @('__VERSION__', '__COMMIT__', '__DISH_NAME__', '__DISH_URL__', '__DISH_FILE__', '__SETUP_NAME__', '__SETUP_HASH__', '__PACKAGE_NAME__', '__PACKAGE_HASH__', '__RUNNER_NAME__', '__RUNNER_OS__', '__RUNNER_ARCH__', '__STARTED__', '__COMPLETED__', '__DURATION__', '__LINE_COUNT__', '$env:', '$setupHash', '$packageHash')
+          foreach ($marker in $unresolved) {
+            if ($published.body.Contains($marker)) { throw "Release notes contain unresolved marker: $marker" }
+          }
+          foreach ($value in @($setup.Name, $package.Name, $setupHash, $packageHash, $startedText, $completedText, $durationText, $env:RELEASE_DISH_FILE)) {
+            if (-not $published.body.Contains($value)) { throw "Release notes are missing evidence: $value" }
+          }

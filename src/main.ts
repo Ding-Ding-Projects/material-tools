@@ -3,8 +3,10 @@ import squirrelStartup from 'electron-squirrel-startup';
 import { execFile } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { IPC_CHANNELS, type SystemSummary } from './shared/contracts';
+import { isTrustedRendererNavigation } from './shared/navigation';
 
 const execFileAsync = promisify(execFile);
 let mainWindow: BrowserWindow | null = null;
@@ -56,6 +58,8 @@ function registerIpc(): void {
 }
 
 function createMainWindow(): void {
+  const rendererPath = path.join(__dirname, '..', 'dist', 'renderer', 'index.html');
+  const rendererUrl = pathToFileURL(rendererPath).toString();
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 820,
@@ -77,11 +81,13 @@ function createMainWindow(): void {
     if (url.startsWith('https://')) void shell.openExternal(url);
     return { action: 'deny' };
   });
-  mainWindow.webContents.on('will-navigate', (event) => event.preventDefault());
+  mainWindow.webContents.on('will-navigate', (event, targetUrl) => {
+    if (!isTrustedRendererNavigation(targetUrl, rendererUrl)) event.preventDefault();
+  });
   mainWindow.once('ready-to-show', () => mainWindow?.show());
   mainWindow.on('closed', () => { mainWindow = null; });
 
-  void mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'renderer', 'index.html'));
+  void mainWindow.loadFile(rendererPath);
 }
 
 app.whenReady().then(() => {
