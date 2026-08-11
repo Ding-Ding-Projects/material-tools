@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "product": "Material Tools documentation",
+  "deployedCommit": "bd2d1130a9720d675ad64accd5f42bdba34c9ffc",
+  "pagesRun": "31539893262",
+  "source": "https://ding-ding-projects.github.io/material-tools/",
+  "captureMethod": "Live GitHub Pages deployment opened in Microsoft Edge on a hidden Win32 desktop with a fresh profile; Chrome DevTools Protocol Page.captureScreenshot",
+  "privacyState": "No private vocabulary file was supplied; original wording remained active.",
+  "captures": [
+    {
+      "file": "overview-light.png",
+      "state": "Live documentation home, light theme, original wording",
+      "width": 1425,
+      "height": 4641,
+      "bytes": 446189
+    },
+    {
+      "file": "applications-article.png",
+      "state": "Live Applications article",
+      "width": 1440,
+      "height": 1907,
+      "bytes": 153952
+    },
+    {
+      "file": "tweaks-article.png",
+      "state": "Live Tweaks article",
+      "width": 1440,
+      "height": 1141,
+      "bytes": 150419
+    },
+    {
+      "file": "config-fixes-article.png",
+      "state": "Live Config and Fixes article",
+      "width": 1440,
+      "height": 1206,
+      "bytes": 153624
+    },
+    {
+      "file": "updates-article.png",
+      "state": "Live Updates article",
+      "width": 1440,
+      "height": 1141,
+      "bytes": 144197
+    },
+    {
+      "file": "automation-article.png",
+      "state": "Live Automation article",
+      "width": 1440,
+      "height": 1076,
+      "bytes": 131085
+    },
+    {
+      "file": "win11-creator-article.png",
+      "state": "Live Win11 Creator article",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 135584
+    },
+    {
+      "file": "settings-light.png",
+      "state": "Live Settings page, light theme, original wording",
+      "width": 1425,
+      "height": 4641,
+      "bytes": 494237
+    },
+    {
+      "file": "private-vocabulary-unloaded.png",
+      "state": "Live private-vocabulary upload in its unloaded, local-only state",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 82547
+    },
+    {
+      "file": "notifications.png",
+      "state": "Live notification history page",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 150758
+    },
+    {
+      "file": "command-palette.png",
+      "state": "Live command palette",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 132574
+    },
+    {
+      "file": "command-regex-builder.png",
+      "state": "Live command palette with its anchored regular-expression builder",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 133869
+    },
+    {
+      "file": "tab-discovery.png",
+      "state": "Live four-scope tab discovery surface",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 103899
+    },
+    {
+      "file": "tab-appearance-editor.png",
+      "state": "Live per-tab appearance editor",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 308506
+    },
+    {
+      "file": "overview-narrow.png",
+      "state": "Live documentation home at a narrow touch layout",
+      "width": 390,
+      "height": 844,
+      "bytes": 110373
+    }
+  ]
+}

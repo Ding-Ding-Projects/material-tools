@@ -203,6 +203,7 @@ p { color: var(--md-sys-color-on-surface-variant); line-height: 1.65; }
   box-shadow: 0 12px 40px color-mix(in srgb, var(--md-sys-color-shadow) 45%, transparent);
 }
 .hero-card p { max-width: 62ch; font-size: 1.1rem; }
+.hero-card .release-proof { margin-block: var(--space-3) 0; font-size: 0.82rem; line-height: 1.45; overflow-wrap: anywhere; }
 .hero-diagram { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: var(--space-3); padding: var(--space-5); border-radius: var(--radius-large); background: var(--md-sys-color-surface); box-shadow: 0 10px 30px var(--md-sys-color-shadow); transform: rotate(1.5deg); }
 .hero-diagram span { min-height: 58px; display: grid; place-items: center; border: 1px solid var(--md-sys-color-outline-variant); border-radius: var(--radius-medium); background: var(--md-sys-color-surface-container); font-weight: 750; }
 .hero-diagram i { font-style: normal; color: var(--md-sys-color-primary); font-weight: 800; }

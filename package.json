@@ -23,6 +23,7 @@
     "check:release-workflow": "node scripts/validate-release-workflow.mjs",
     "check": "npm run check:release-workflow && npm run typecheck && npm test && npm run build && npm run check:preload",
     "capture:ui": "node scripts/capture-ui.mjs",
+    "capture:site": "node scripts/capture-site.mjs",
     "dist": "npm run build && electron-builder --win squirrel --publish never"
   },
   "build": {

@@ -2,13 +2,15 @@
 
 Material Tools is a Windows Electron application being built to provide full behavioral parity with [Chris Titus Tech's WinUtil](https://github.com/ChrisTitusTech/winutil), wrapped in a secure Material Design 3 desktop experience.
 
-> **Current status:** foundation build. The application launches, reports a real read-only system summary, exposes a frameless Material shell, persists core appearance and language settings, and includes a bounded regex search plus `Ctrl+Shift+F` command palette. System-changing WinUtil operations are deliberately unavailable until their preview, recovery, verification, and audit contracts are implemented.
+> **Current status:** verified foundation release. The application launches, reports a real read-only system summary, exposes a frameless Material shell, persists core appearance and language settings, and includes a bounded regex search plus `Ctrl+Shift+F` command palette. The initial documentation site is live. System-changing WinUtil operations remain deliberately unavailable until their preview, recovery, verification, and audit contracts are implemented.
 
 ## Start here
 
 - Build the runnable application: `build.bat`
 - Build the unsigned Squirrel.Windows installer: `build-installer.bat`
 - Silent automation mode: `build.bat /s` or `build-installer.bat /s`
+- Live documentation: <https://ding-ding-projects.github.io/material-tools/>
+- Verified unsigned installer: [`build-0.1.0.15` for Windows x64](https://github.com/Ding-Ding-Projects/material-tools/releases/download/build-0.1.0.15/MaterialTools-Setup-0.1.0-x64.exe)
 - Documentation: [docs/README.md](docs/README.md)
 - Interactive documentation site source: [site/README.md](site/README.md)
 - Delivery plan: [ROADMAP.md](ROADMAP.md)
@@ -61,7 +63,88 @@ Both root scripts are designed for a fresh Windows checkout. They check for a su
 <details>
 <summary>Capture matrix</summary>
 
-No release captures exist yet. The repository began with no application source, and the first built-artifact capture has not been verified. Real captures from a known built commit will be added for every destination, settings surface, editor, dialog, empty and error state, narrow layout, light theme, and dark/contrast theme. Mockups and hand-edited images are not accepted as evidence.
+The desktop captures came from the real locally built unsigned Squirrel.Windows package at commit `bd2d1130a9720d675ad64accd5f42bdba34c9ffc`, which is the target of verified release `build-0.1.0.15`. A deterministic documentation fixture replaces device-specific facts; it is visibly labelled in the application. The site captures came from the live GitHub Pages deployment for the same commit, verified by workflow run `31539893262`. Every image below was opened and visually reviewed; no mockup, design export, user vocabulary payload, or hand-edited substitute is used.
+
+<details>
+<summary>Desktop overview, themes, and narrow layout</summary>
+
+![Desktop overview in dark theme with the labelled non-device-specific fixture](docs/captures/foundation/overview-dark.png)
+
+![Desktop overview in light bilingual mode](docs/captures/foundation/overview-light-bilingual.png)
+
+![Desktop overview at a narrow touch layout](docs/captures/foundation/overview-narrow.png)
+
+</details>
+
+<details>
+<summary>Desktop parity destinations and honest unavailable states</summary>
+
+![Install destination showing its honest unavailable foundation state](docs/captures/foundation/install-unavailable.png)
+
+![Tweaks destination showing its honest unavailable foundation state](docs/captures/foundation/tweaks-unavailable.png)
+
+![Config destination showing its honest unavailable foundation state](docs/captures/foundation/config-unavailable.png)
+
+![Updates destination showing its honest unavailable foundation state](docs/captures/foundation/updates-unavailable.png)
+
+![MicroWin destination showing its honest unavailable foundation state](docs/captures/foundation/microwin-unavailable.png)
+
+</details>
+
+<details>
+<summary>Desktop settings, private vocabulary, command palette, and regex builder</summary>
+
+![Desktop Settings in dark theme with every implemented foundation control](docs/captures/foundation/settings-dark.png)
+
+![Desktop Settings in light bilingual mode](docs/captures/foundation/settings-light-bilingual.png)
+
+![Desktop command palette opened in the running application](docs/captures/foundation/command-palette.png)
+
+![Desktop command palette with its anchored regular-expression builder](docs/captures/foundation/regex-builder.png)
+
+</details>
+
+<details>
+<summary>Live documentation home, articles, and narrow layout</summary>
+
+![Live documentation home in light theme](docs/captures/site/overview-light.png)
+
+![Live Applications documentation article](docs/captures/site/applications-article.png)
+
+![Live Tweaks documentation article](docs/captures/site/tweaks-article.png)
+
+![Live Config and Fixes documentation article](docs/captures/site/config-fixes-article.png)
+
+![Live Updates documentation article](docs/captures/site/updates-article.png)
+
+![Live Automation documentation article](docs/captures/site/automation-article.png)
+
+![Live Win11 Creator documentation article](docs/captures/site/win11-creator-article.png)
+
+![Live documentation home at a narrow touch layout](docs/captures/site/overview-narrow.png)
+
+</details>
+
+<details>
+<summary>Live documentation settings and interactive tools</summary>
+
+![Live documentation Settings surface in light theme](docs/captures/site/settings-light.png)
+
+![Live private-vocabulary upload with original wording active and no file selected](docs/captures/site/private-vocabulary-unloaded.png)
+
+![Live notification history surface](docs/captures/site/notifications.png)
+
+![Live command palette](docs/captures/site/command-palette.png)
+
+![Live command palette with its anchored regular-expression builder](docs/captures/site/command-regex-builder.png)
+
+![Live four-scope tab discovery surface](docs/captures/site/tab-discovery.png)
+
+![Live per-tab appearance editor](docs/captures/site/tab-appearance-editor.png)
+
+</details>
+
+Machine-readable provenance is recorded in [the desktop capture manifest](docs/captures/foundation/manifest.json) and [the live-site capture manifest](docs/captures/site/manifest.json).
 
 </details>
 

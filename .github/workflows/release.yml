@@ -146,7 +146,7 @@ jobs:
 
           ## Verification
 
-          - Local checks recorded before the push: TypeScript, 4 unit tests, production build, root build script, Squirrel.Windows packaging, required-asset presence, and `NotSigned` verification.
+          - Repository policy requires local TypeScript, unit, production-build, root-build, Squirrel.Windows packaging, required-asset, and `NotSigned` checks before a push. This workflow does not rerun those checks and does not assert a potentially stale local test count; consult the tagged commit's handoff for the recorded local result.
           - GitHub Actions intentionally ran no tests, lint, type checks, static analysis, accessibility checks, or screenshot gates. A release can therefore publish even if a later local check would fail; this is the repository's accepted delivery policy.
           - Build and packaging completed on __RUNNER_NAME__ (`__RUNNER_OS__` / `__RUNNER_ARCH__`).
           - The published installer was downloaded again and its SHA-256 matched the built installer.

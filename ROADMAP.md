@@ -7,8 +7,8 @@
 - [x] Persisted language, funny-level, display-name, theme, density, accent, and emoji settings.
 - [x] Bounded tab search and command palette regex foundation.
 - [x] App-local private-vocabulary upload, validation, application, and clear path without repository or network disclosure.
-- [ ] Package and drive the first real unsigned Squirrel.Windows installer.
-- [ ] Capture every foundation surface from the built artifact.
+- [x] Package and drive the first real unsigned Squirrel.Windows installer.
+- [x] Capture every implemented foundation surface from the built artifact.
 
 ## 0.2 — application management parity
 
@@ -32,6 +32,7 @@
 
 ## Cross-cutting shared contract
 
+- [x] Publish and visually capture the initial mobile-friendly GitHub Pages foundation.
 - [ ] Complete the hand-written universal-feature inventory across app and documentation site.
 - [ ] Finish tabs, groups, locks, appearance editors, schedules, history, exports, authenticator, narration, updater, offline docs, changelog, notifications, and dim-sum behavior.
 - [ ] Publish the complete mobile-friendly GitHub Pages site with one article and real capture set per feature.

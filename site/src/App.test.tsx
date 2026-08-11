@@ -7,6 +7,13 @@ import { MAX_PRIVATE_VOCABULARY_BYTES } from './vocabulary';
 describe('Material Tools Pages shell', () => {
   beforeEach(() => window.localStorage.clear());
 
+  it('links the verified unsigned Windows installer from the home surface', () => {
+    render(<App />);
+    const download = screen.getByRole('link', { name: 'Download 0.1.0 for Windows (x64)' });
+    expect(download).toHaveAttribute('href', 'https://github.com/Ding-Ding-Projects/material-tools/releases/download/build-0.1.0.15/MaterialTools-Setup-0.1.0-x64.exe');
+    expect(screen.getByText(/Verified build-0\.1\.0\.15/)).toHaveTextContent('SHA-256 9b348c48b2fe0bdca6e7465820fef90226e88b9651f31143fa675e50efac2d54');
+  });
+
   it('opens the global command palette with Ctrl+Shift+F', () => {
     render(<App />);
     expect(screen.getByLabelText('Upload private vocabulary JSON file')).toBeInTheDocument();

@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "product": "Material Tools",
+  "commit": "bd2d1130a9720d675ad64accd5f42bdba34c9ffc",
+  "releaseTag": "build-0.1.0.15",
+  "source": "file:///C:/Users/Administrator/Documents/GitHub/material-tools/dist/win-unpacked/resources/app.asar/dist/renderer/index.html",
+  "captureMethod": "Locally built unsigned Squirrel.Windows package from the stated commit, hidden Win32 desktop, deterministic non-device-specific fixture, Chrome DevTools Protocol Page.captureScreenshot",
+  "captures": [
+    {
+      "file": "overview-dark.png",
+      "state": "Overview, dark theme, English, deterministic non-device-specific documentation fixture",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 64558
+    },
+    {
+      "file": "install-unavailable.png",
+      "state": "Install destination with an honest unavailable state",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 47744
+    },
+    {
+      "file": "tweaks-unavailable.png",
+      "state": "Tweaks destination with an honest unavailable state",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 49705
+    },
+    {
+      "file": "config-unavailable.png",
+      "state": "Config destination with an honest unavailable state",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 49686
+    },
+    {
+      "file": "updates-unavailable.png",
+      "state": "Updates destination with an honest unavailable state",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 49887
+    },
+    {
+      "file": "microwin-unavailable.png",
+      "state": "MicroWin destination with an honest unavailable state",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 51625
+    },
+    {
+      "file": "settings-dark.png",
+      "state": "Settings, dark theme, all foundation controls",
+      "width": 1425,
+      "height": 1615,
+      "bytes": 110367
+    },
+    {
+      "file": "command-palette.png",
+      "state": "Command palette opened from the running application",
+      "width": 1425,
+      "height": 1615,
+      "bytes": 124761
+    },
+    {
+      "file": "regex-builder.png",
+      "state": "Command-palette search with its anchored regular expression builder",
+      "width": 1425,
+      "height": 1615,
+      "bytes": 143816
+    },
+    {
+      "file": "settings-light-bilingual.png",
+      "state": "Settings, light theme, bilingual mode",
+      "width": 1425,
+      "height": 1615,
+      "bytes": 115101
+    },
+    {
+      "file": "overview-light-bilingual.png",
+      "state": "Overview, light theme, bilingual mode",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 82427
+    },
+    {
+      "file": "overview-narrow.png",
+      "state": "Overview at a narrow touch layout",
+      "width": 480,
+      "height": 900,
+      "bytes": 31898
+    }
+  ]
+}

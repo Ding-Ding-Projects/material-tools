@@ -31,6 +31,13 @@ import { SearchBox } from './components/SearchBox';
 
 const emptySearch = (): SearchState => ({ query: '', regex: false, flags: 'i' });
 
+const verifiedInstaller = {
+  version: '0.1.0',
+  tag: 'build-0.1.0.15',
+  sha256: '9b348c48b2fe0bdca6e7465820fef90226e88b9651f31143fa675e50efac2d54',
+  url: 'https://github.com/Ding-Ding-Projects/material-tools/releases/download/build-0.1.0.15/MaterialTools-Setup-0.1.0-x64.exe',
+};
+
 function localized(en: string, yue: string, preferences: Preferences) {
   const mode = preferences.schoolMode ? 'en' : preferences.language;
   if (mode === 'yue') return yue;
@@ -626,9 +633,19 @@ function OverviewPage({ preferences, state, activateTab, editAppearance }: { pre
           <h1>{localized('Build a Windows setup you can explain', '砌一套講得明嘅 Windows 設定', preferences)}</h1>
           <p>{heroCopy(preferences)}</p>
           <div className="button-row">
-            <button className="filled-button" type="button" onClick={() => activateTab('applications')}>Explore the workflow</button>
-            <button className="tonal-button" type="button" onClick={() => activateTab('settings')}>Personalize this site</button>
+            <a className="filled-button link-button" href={verifiedInstaller.url} target="_blank" rel="noreferrer">
+              {localized(`Download ${verifiedInstaller.version} for Windows (x64)`, `下載 Windows ${verifiedInstaller.version}（x64）`, preferences)}
+            </a>
+            <button className="tonal-button" type="button" onClick={() => activateTab('applications')}>Explore the workflow</button>
+            <button className="text-button" type="button" onClick={() => activateTab('settings')}>Personalize this site</button>
           </div>
+          <p className="release-proof">
+            {localized(
+              `Verified ${verifiedInstaller.tag}. Unsigned installer; SHA-256 ${verifiedInstaller.sha256}.`,
+              `已驗證 ${verifiedInstaller.tag}。安裝程式未簽署；SHA-256 ${verifiedInstaller.sha256}。`,
+              preferences,
+            )}
+          </p>
         </div>
         <div className="hero-diagram" aria-label="Workflow from applications through delivery">
           <span>Apps</span><i aria-hidden="true">→</i><span>Tweaks</span><i aria-hidden="true">→</i><span>Fixes</span><i aria-hidden="true">→</i><span>Delivery</span>

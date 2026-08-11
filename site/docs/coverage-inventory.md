@@ -16,6 +16,8 @@ This inventory is intentionally hand-written. The corresponding source list is t
 - Searchable global and per-element appearance controls with continuous HSL/HEX color editing and automatic text contrast.
 - An always-visible, localized, bounded private-vocabulary JSON upload with version/schema validation, browser-only cache, clear/error state, and original wording when absent. No mappings or vocabulary payloads are bundled.
 - Feature articles for Applications, Tweaks, Config & Fixes, Updates, Automation, and Win11 Creator, each with a commit-pinned public source.
+- A direct home-page download for the verified unsigned Windows x64 installer with its release tag and SHA-256 digest.
+- Fifteen visually reviewed captures from the live Pages deployment, recorded in a commit- and workflow-bound manifest.
 - Keyboard focus, axis-aware tab navigation, reduced motion, touch-sized targets, and layouts from 320 px upward.
 - Build-only GitHub Pages delivery workflow. Tests and lint do not run in Actions.
 
@@ -29,7 +31,7 @@ This inventory is intentionally hand-written. The corresponding source list is t
 - The command palette reaches every current page and core setting, but does not yet index every nested article paragraph or expose every setting as an inline control.
 - Notification history supports search and dismissal; selection ranges, every bulk action, archive export, and destructive super-confirmation are not yet complete.
 - Every-element contextual menus, bulk tab closing, complete tab-group authoring, and tab overflow management remain future phases.
-- Authentication, tab and appearance locks, TOTP tools, Support Tickets, local version history, scheduled settings, changelog filtering, exports, bulk actions, narration, destructive confirmation, offline caching, dim-sum surprise, and real built-surface captures remain future phases.
+- Authentication, tab and appearance locks, TOTP tools, Support Tickets, local version history, scheduled settings, changelog filtering, exports, bulk actions, narration, destructive confirmation, offline caching, and dim-sum surprise remain future phases.
 
 ## Source evidence
 

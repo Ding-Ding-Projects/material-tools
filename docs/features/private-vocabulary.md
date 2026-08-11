@@ -46,6 +46,10 @@ Parsing and replacement occur in the sandboxed renderer. The feature performs no
 
 `src/renderer/lib/private-vocabulary.test.ts` covers valid parsing, literal longest-match replacement, invalid JSON, schema rejection, empty and duplicate entries, the 256 KiB bound, and unchanged fallback copy. `npm run check` also verifies TypeScript and the production renderer bundle. The built-artifact capture matrix includes the unloaded Settings state without supplying or exposing a private payload.
 
+![Private vocabulary upload in the real built desktop Settings surface with no file loaded](../captures/foundation/settings-dark.png)
+
+![Private vocabulary upload on the live documentation site with original wording active](../captures/site/private-vocabulary-unloaded.png)
+
 ## Suggested articles
 
 - [Foundation shell](foundation-shell.md)

@@ -18,7 +18,13 @@ The renderer has no direct operating-system or filesystem access. Search evaluat
 
 ## Verification
 
-`npm run check` type-checks both process boundaries, runs the search tests, and produces the main, preload, and renderer build outputs. Real-artifact interaction and captures remain required before release.
+`npm run check` type-checks both process boundaries, runs the focused unit suite, and produces the main, preload, and renderer build outputs. The capture harness drove the locally built unsigned Squirrel.Windows package from commit `bd2d1130a9720d675ad64accd5f42bdba34c9ffc` on a hidden Win32 desktop and recorded a deterministic, non-device-specific fixture.
+
+![Material Tools overview in the real built desktop application](../captures/foundation/overview-dark.png)
+
+![Material Tools command palette in the real built desktop application](../captures/foundation/command-palette.png)
+
+![Material Tools overview at a narrow touch layout](../captures/foundation/overview-narrow.png)
 
 ## Suggested articles
 

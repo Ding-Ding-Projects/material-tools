@@ -2,6 +2,10 @@
 
 Material Tools is a mobile-first Material Design 3 documentation and feature-exploration surface for a Windows setup utility. It maps the public WinUtil workflow into an accessible, local-first interface while the desktop application is developed in parallel.
 
+- Live site: <https://ding-ding-projects.github.io/material-tools/>
+- Verified Windows installer: [`build-0.1.0.15`](https://github.com/Ding-Ding-Projects/material-tools/releases/download/build-0.1.0.15/MaterialTools-Setup-0.1.0-x64.exe) (unsigned, x64)
+- Live-deployment capture manifest: [`docs/captures/site/manifest.json`](../docs/captures/site/manifest.json)
+
 ## Run locally
 
 ```powershell
@@ -49,6 +53,8 @@ npm run build
 - Commit-pinned links to the public upstream documentation supporting each capability list.
 - Non-blocking corner notifications with a searchable, reviewable history.
 - A hand-written coverage inventory checked by the test suite.
+- A direct home-page download for the verified unsigned Windows installer, including its release tag and SHA-256 digest.
+- Fifteen visually reviewed captures from the live Pages deployment at the recorded commit and workflow run.
 
 </details>
 
