@@ -27,6 +27,7 @@ The installer is intentionally unsigned and may trigger an unknown-publisher or 
 - Persisted English, playful Hong Kong-style Cantonese, and bilingual modes.
 - Independently persisted English and Cantonese funny-level controls.
 - Persisted application display name, theme, density, accent, and dialog-emoji setting.
+- Visible private-vocabulary upload and clear controls with bounded versioned validation, local-only caching, and unchanged shipped wording when no file is loaded.
 - Non-blocking error notifications.
 
 </details>

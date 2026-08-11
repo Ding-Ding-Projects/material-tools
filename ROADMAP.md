@@ -6,6 +6,7 @@
 - [x] Sandboxed renderer and typed read-only system-summary bridge.
 - [x] Persisted language, funny-level, display-name, theme, density, accent, and emoji settings.
 - [x] Bounded tab search and command palette regex foundation.
+- [x] App-local private-vocabulary upload, validation, application, and clear path without repository or network disclosure.
 - [ ] Package and drive the first real unsigned Squirrel.Windows installer.
 - [ ] Capture every foundation surface from the built artifact.
 

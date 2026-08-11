@@ -17,6 +17,7 @@ export interface SystemSummary {
   uptimeSeconds: number;
   appVersion: string;
   elevated: boolean;
+  captureFixture: boolean;
 }
 
 export interface MaterialToolsBridge {

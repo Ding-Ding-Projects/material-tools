@@ -120,8 +120,9 @@ async function capture(name, state, width = 1440, height = 1000, captureBeyondVi
 await send('Page.enable');
 await send('Runtime.enable');
 await waitFor("Boolean(document.querySelector('.fact-grid'))", 'the system summary');
+await waitFor("document.querySelector('.status-chip')?.textContent?.trim() === 'Fixture'", 'the privacy-safe documentation fixture');
 
-await capture('overview-dark', 'Overview, dark theme, English, live read-only system summary');
+await capture('overview-dark', 'Overview, dark theme, English, deterministic non-device-specific documentation fixture');
 
 for (const [tab, file] of [
   ['Install', 'install-unavailable'],
@@ -152,7 +153,8 @@ await evaluate(`(() => {
   [...document.querySelectorAll('[role="radio"]')].find((button) => button.textContent?.includes('English · 廣東話'))?.click();
   return true;
 })()`);
-await delay(180);
+await waitFor("document.querySelector('.app-shell')?.getAttribute('data-theme') === 'light'", 'the light theme');
+await waitFor("[...document.querySelectorAll('[role=\"tab\"]')].some((tab) => tab.textContent?.includes('總覽'))", 'bilingual tab labels');
 await capture('settings-light-bilingual', 'Settings, light theme, bilingual mode', 1440, 1000, true);
 
 await clickTab('Overview');
@@ -164,7 +166,8 @@ await evaluate(`(() => {
   [...document.querySelectorAll('[role="radio"]')].find((button) => button.textContent?.trim() === 'English')?.click();
   return true;
 })()`);
-await delay(180);
+await waitFor("document.querySelector('.app-shell')?.getAttribute('data-theme') === 'dark'", 'the restored dark theme');
+await waitFor("![...document.querySelectorAll('[role=\"tab\"]')].some((tab) => tab.textContent?.includes('總覽'))", 'the restored English labels');
 await clickTab('Overview');
 await waitFor("Boolean(document.querySelector('.fact-grid'))", 'the narrow-layout system summary');
 await capture('overview-narrow', 'Overview at a narrow touch layout', 480, 900, false);
@@ -178,7 +181,7 @@ writeFileSync(resolve(outputDirectory, 'manifest.json'), `${JSON.stringify({
   commit,
   releaseTag,
   source: page.url,
-  captureMethod: 'Published Squirrel.Windows package, hidden Win32 desktop, Chrome DevTools Protocol Page.captureScreenshot',
+  captureMethod: 'Locally built unsigned Squirrel.Windows package from the stated commit, hidden Win32 desktop, deterministic non-device-specific fixture, Chrome DevTools Protocol Page.captureScreenshot',
   captures,
 }, null, 2)}\n`);
 

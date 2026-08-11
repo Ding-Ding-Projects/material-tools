@@ -6,6 +6,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { IPC_CHANNELS, type SystemSummary } from './shared/contracts';
+import { createDocumentationCaptureSummary } from './shared/capture-fixture';
 import { isTrustedRendererNavigation } from './shared/navigation';
 
 const execFileAsync = promisify(execFile);
@@ -30,6 +31,9 @@ async function isElevated(): Promise<boolean> {
 }
 
 async function getSystemSummary(): Promise<SystemSummary> {
+  if (process.env.MATERIAL_TOOLS_CAPTURE_FIXTURE === '1' || process.argv.includes('--documentation-capture-fixture')) {
+    return createDocumentationCaptureSummary(app.getVersion());
+  }
   const cpus = os.cpus();
   return {
     hostname: os.hostname(),
@@ -43,6 +47,7 @@ async function getSystemSummary(): Promise<SystemSummary> {
     uptimeSeconds: os.uptime(),
     appVersion: app.getVersion(),
     elevated: await isElevated(),
+    captureFixture: false,
   };
 }
 
