@@ -70,6 +70,31 @@ button { min-height: 48px; }
 .popover-surface { position: absolute; z-index: 20; top: calc(100% + 8px); right: 0; width: min(320px, calc(100vw - 32px)); max-height: min(420px, calc(100vh - 100px)); overflow: auto; display: grid; gap: 12px; padding: 18px; border: 1px solid var(--outline-variant); border-radius: 20px; background: var(--surface-container-high); color: var(--on-surface); box-shadow: 0 12px 32px color-mix(in srgb, var(--shadow) 35%, transparent); }
 .popover-surface label { display: flex; gap: 10px; align-items: center; }
 .popover-surface p { margin: 0; color: var(--on-surface-variant); }
+.regex-builder__surface { width: min(620px, calc(100vw - 24px)); max-width: calc(100vw - 24px); max-height: min(680px, calc(100vh - 88px)); gap: 16px; padding: 20px; overscroll-behavior: contain; }
+.rail-search .regex-builder__surface { right: auto; left: 0; width: min(620px, calc(100vw - 280px)); }
+.tab-rail:has(.regex-builder[open]) { position: relative; z-index: 30; overflow: visible; }
+.regex-builder__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.regex-builder__header h3 { margin: 0; font-size: 1.25rem; }
+.regex-builder__header .icon-button { flex: 0 0 48px; width: 48px; min-height: 48px; border: 0; border-radius: 24px; background: var(--surface-container-highest); color: var(--on-surface); }
+.regex-builder__section { gap: 12px; padding: 16px; border-radius: 18px; background: var(--surface-container); }
+.regex-builder__section label, .regex-builder__flags { min-width: 0; display: grid; gap: 7px; align-items: stretch; }
+.regex-builder__section input:not([type="checkbox"]), .regex-builder__section textarea { width: 100%; min-width: 0; min-height: 48px; padding: 10px 12px; border: 1px solid var(--outline); border-radius: 12px; background: var(--surface); color: var(--on-surface); font: inherit; resize: vertical; }
+.regex-builder__section textarea { line-height: 1.45; }
+.regex-builder__mode > label:has(input[type="checkbox"]) { display: flex; min-height: 44px; flex-direction: row; align-items: center; }
+.regex-builder__mode input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--primary); }
+.regex-builder__guided-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.regex-builder__guide { min-width: 0; display: grid; align-content: end; gap: 10px; padding: 12px; border-radius: 14px; background: var(--surface-container-low); }
+.regex-builder__guide button, .regex-builder__token-groups button, .regex-builder__actions button { min-height: 44px; padding: 8px 14px; border: 1px solid var(--outline); border-radius: 16px; background: var(--secondary-container); color: var(--on-secondary-container); font: inherit; font-weight: 650; }
+.regex-builder__token-groups { display: grid; gap: 10px; }
+.regex-builder__token-groups [role="group"] { display: flex; flex-wrap: wrap; gap: 8px; }
+.regex-builder__feedback { min-height: 24px; padding: 10px 12px; border-radius: 12px; background: var(--tertiary-container); color: var(--on-tertiary-container); }
+.regex-builder__feedback.error { background: var(--error-container); color: var(--on-error-container); }
+.regex-builder__matches { min-width: 0; max-height: 260px; overflow: auto; padding: 12px; border: 1px solid var(--outline-variant); border-radius: 14px; background: var(--surface); }
+.regex-builder__matches ol, .regex-builder__matches ul { margin: 10px 0 0; padding-left: 24px; }
+.regex-builder__matches li { margin-block: 6px; overflow-wrap: anywhere; }
+.regex-builder__matches code { padding: 2px 5px; border-radius: 5px; background: var(--surface-container-highest); color: var(--on-surface); }
+.regex-builder__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.regex-builder__actions output { min-width: min(100%, 220px); color: var(--on-surface-variant); overflow-wrap: anywhere; }
 
 .tab-rail nav { display: grid; gap: 4px; }
 .tab-rail [role="tab"] { min-height: var(--row-height); display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 14px; border: 0; border-radius: 16px; background: transparent; color: var(--on-surface); text-align: left; }
@@ -126,6 +151,13 @@ legend { padding: 0 8px; font-size: 1.05rem; font-weight: 650; }
 fieldset p, fieldset small { margin: 0; color: var(--on-surface-variant); line-height: 1.45; }
 .field-row { display: flex; flex-wrap: wrap; gap: 10px; }
 .field-row input { flex: 1 1 260px; min-height: 48px; padding: 0 12px; border: 1px solid var(--outline); border-radius: 12px; background: var(--surface); color: var(--on-surface); }
+.accent-color-editor { display: grid; gap: 14px; padding: 16px; border: 1px solid var(--outline-variant); border-radius: 20px; background: var(--surface-container-low); }
+.accent-color-editor > small { color: var(--on-surface-variant); }
+.accent-color-editor__hex { display: grid; gap: 8px; }
+.accent-color-editor__swatch { width: 48px; height: 48px; flex: 0 0 48px; border: 1px solid var(--outline); border-radius: 16px; }
+.accent-color-editor__sliders { padding: 16px; background: var(--surface-container); }
+.accent-color-editor__sliders label { display: grid; grid-template-columns: minmax(110px, auto) minmax(42px, auto) minmax(180px, 1fr); align-items: center; gap: 10px; }
+.accent-color-editor__preview { min-height: 72px; border: 1px solid var(--outline); border-radius: 18px; }
 .segmented-control { display: flex; flex-wrap: wrap; gap: 4px; }
 .segmented-control button { border-radius: 10px; }
 .segmented-control button.selected, fieldset button[aria-pressed="true"] { border-color: var(--primary); background: var(--primary-container); color: var(--on-primary-container); }
@@ -134,7 +166,7 @@ fieldset input[type="range"] { width: 100%; accent-color: var(--primary); }
 .switch-row { display: flex; align-items: center; gap: 12px; }
 
 .palette-scrim { position: fixed; z-index: 50; inset: 48px 0 0; display: grid; place-items: start center; padding: min(8vh, 64px) 16px 16px; background: rgba(0,0,0,.48); }
-.command-palette { width: min(720px, 100%); max-height: min(680px, calc(100vh - 96px)); display: grid; gap: 14px; padding: 22px; overflow: auto; border: 1px solid var(--outline-variant); border-radius: 28px; background: var(--surface-container-high); color: var(--on-surface); box-shadow: 0 24px 64px color-mix(in srgb, var(--shadow) 45%, transparent); }
+.command-palette { width: min(720px, 100%); max-height: min(680px, calc(100vh - 96px)); display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-flow: row; align-content: start; gap: 14px; padding: 22px; overflow: auto; border: 1px solid var(--outline-variant); border-radius: 28px; background: var(--surface-container-high); color: var(--on-surface); box-shadow: 0 24px 64px color-mix(in srgb, var(--shadow) 45%, transparent); }
 .palette-heading { display: flex; align-items: center; justify-content: space-between; }
 .palette-heading button { width: 48px; border: 0; border-radius: 24px; background: var(--surface-container-highest); color: var(--on-surface); }
 .command-results { display: grid; gap: 4px; }
@@ -166,9 +198,17 @@ fieldset input[type="range"] { width: 100%; accent-color: var(--primary); }
   .workspace { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
   .tab-rail { border-right: 0; border-bottom: 1px solid var(--outline); overflow-x: auto; }
   .rail-heading, .notification-entry { display: none; }
+  .rail-search { position: relative; width: 100%; height: auto; margin-bottom: 12px; overflow: visible; clip: auto; display: flex; }
   .tab-rail nav { display: flex; min-width: max-content; }
   .tab-rail [role="tab"] { width: 48px; }
   .fact-grid { grid-template-columns: 1fr; }
   .window-controls button { min-width: 48px; }
   .action-illustration--notification { width: 72px; height: 48px; flex-basis: 72px; }
+  .accent-color-editor { padding: 12px; }
+  .accent-color-editor__sliders label { grid-template-columns: 1fr auto; }
+  .accent-color-editor__sliders input { grid-column: 1 / -1; }
+  .regex-builder__surface, .rail-search .regex-builder__surface { position: fixed; inset: 60px 10px 10px; width: auto; max-width: none; max-height: none; padding: 14px; border-radius: 22px; }
+  .regex-builder__guided-grid { grid-template-columns: 1fr; }
+  .regex-builder__actions { align-items: stretch; flex-direction: column; }
+  .regex-builder__actions button { width: 100%; }
 }

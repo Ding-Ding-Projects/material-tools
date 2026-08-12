@@ -39,7 +39,7 @@ npm run build
 - English, playful Hong Kong-style Cantonese, and bilingual presentation across the primary navigation, landing copy, and article summaries.
 - Independent five-level English and Cantonese funny-level controls wired to the landing copy.
 - Persisted message-decoration toggle and a local School mode foundation.
-- An always-visible, localized, bounded private-vocabulary JSON upload with version/schema validation, browser-only caching, reset/error state, and original wording when absent; no mappings or payloads are bundled.
+- A localized, bounded private-vocabulary JSON upload that stays visible whenever School mode is off, with shared schema validation, browser-only caching, reset/error state, and original wording when absent; no mappings or payloads are bundled.
 - Light, dark, and system themes; searchable continuous HSL/HEX accent editing with automatic text contrast; density, text scale, and dock controls.
 - Searchable per-tab and per-article appearance entry points with live previews.
 - Keyboard navigation, visible focus, reduced-motion support, touch-sized targets, and narrow layouts.
@@ -52,6 +52,8 @@ npm run build
 - Feature articles for Applications, Tweaks, Config & Fixes, Updates, Automation, and Win11 Creator.
 - Commit-pinned links to the public upstream documentation supporting each capability list.
 - Non-blocking corner notifications with a searchable, reviewable history.
+- Local action illustrations on every implemented feature, article, dialog, popover, mobile sheet, and notification, with localized alternatives and responsive 3:2 containment.
+- One bounded version-1 private-vocabulary contract shared with the desktop app, including duplicate-key, unsafe-key, depth, count, length, and cache validation; approved replacements reach visible copy and accessible names and are suppressed by School mode.
 - A hand-written coverage inventory checked by the test suite.
 - A direct home-page download for the verified unsigned Windows installer, including its release tag and SHA-256 digest.
 - Fifteen visually reviewed captures from the live Pages deployment at the recorded commit and workflow run.
@@ -62,4 +64,4 @@ npm run build
 
 The application makes no runtime API calls, uses no CDN, includes no analytics, and stores visitor preferences only in browser local storage. The GitHub Pages workflow builds and deploys the static site; it deliberately runs no tests or lint in GitHub Actions. Local checks are expected before changes are pushed.
 
-See [the coverage inventory](docs/coverage-inventory.md) for implemented slices and known first-release limits.
+See [the coverage inventory](docs/coverage-inventory.md) for implemented slices and known first-release limits, and [Action illustrations](docs/action-illustrations.md) for the complete image-surface contract.

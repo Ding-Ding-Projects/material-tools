@@ -1,24 +1,31 @@
 import { useEffect, useMemo, useState } from 'react';
 import { bestContrastingText, contrastRatio, hexToHsl, hslToHex, normalizeHex } from '../color';
 import { matchesSearch } from '../regex';
-import type { SearchState } from '../types';
+import type { LanguageMode, SearchState } from '../types';
 import { SearchBox } from './SearchBox';
 
 interface ColorControlProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  language?: LanguageMode;
+  schoolMode?: boolean;
+  transform?: (text: string) => string;
 }
 
-export function ColorControl({ label, value, onChange }: ColorControlProps) {
+export function ColorControl({ label, value, onChange, language = 'en', schoolMode = false, transform = (text) => text }: ColorControlProps) {
   const [search, setSearch] = useState<SearchState>({ query: '', regex: false, flags: 'i' });
   const [draft, setDraft] = useState(value);
   const normalized = normalizeHex(value) ?? '#6750a4';
   const hsl = useMemo(() => hexToHsl(normalized), [normalized]);
+  const searchable = (source: string) => {
+    const transformed = transform(source);
+    return transformed === source ? source : `${source} ${transformed}`;
+  };
   const visible = {
-    hex: matchesSearch('HEX direct color value custom entry', search),
-    hsl: matchesSearch('Hue saturation lightness continuous spectrum HSL', search),
-    contrast: matchesSearch('Accessible contrast foreground text ratio', search),
+    hex: matchesSearch(searchable('HEX direct color value custom entry'), search),
+    hsl: matchesSearch(searchable('Hue saturation lightness continuous spectrum HSL'), search),
+    contrast: matchesSearch(searchable('Accessible contrast foreground text ratio'), search),
   };
   const visibleCount = Object.values(visible).filter(Boolean).length;
   const onColor = bestContrastingText(normalized);
@@ -31,7 +38,7 @@ export function ColorControl({ label, value, onChange }: ColorControlProps) {
 
   return (
     <section className="color-control" aria-label={label}>
-      <SearchBox label={`${label} editor`} state={search} onChange={setSearch} resultCount={visibleCount} compact />
+      <SearchBox label={`${label} editor`} state={search} onChange={setSearch} resultCount={visibleCount} compact language={language} schoolMode={schoolMode} />
       {visible.hex && (
         <label>
           HEX color

@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { MAX_PATTERN, MAX_SAMPLE, previewMatches, validatePattern } from '../regex';
-import type { SearchState } from '../types';
+import type { LanguageMode, SearchState } from '../types';
+import { ActionIllustration } from './ActionIllustration';
 
 interface SearchBoxProps {
   label: string;
@@ -10,6 +11,8 @@ interface SearchBoxProps {
   placeholder?: string;
   compact?: boolean;
   autoFocus?: boolean;
+  language?: LanguageMode;
+  schoolMode?: boolean;
 }
 
 const tokens = [
@@ -21,7 +24,7 @@ const tokens = [
   { label: 'One or more', value: 'text+' },
 ];
 
-export function SearchBox({ label, state, onChange, resultCount, placeholder, compact, autoFocus }: SearchBoxProps) {
+export function SearchBox({ label, state, onChange, resultCount, placeholder, compact, autoFocus, language = 'en', schoolMode = false }: SearchBoxProps) {
   const id = useId();
   const [builderOpen, setBuilderOpen] = useState(false);
   const [sample, setSample] = useState('Applications Tweaks Config Updates Win11 Creator');
@@ -108,6 +111,7 @@ export function SearchBox({ label, state, onChange, resultCount, placeholder, co
               Close
             </button>
           </div>
+          <ActionIllustration surface="popover-regex-builder" language={language} schoolMode={schoolMode} variant="builder" />
           <label className="switch-row">
             <input
               data-builder-focus

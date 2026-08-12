@@ -23,6 +23,7 @@ export const coverageInventory: CoverageItem[] = [
   { id: 'notifications', label: 'Non-blocking notifications and reviewable history', status: 'implemented', evidence: 'src/App.tsx' },
   { id: 'appearance', label: 'Global and per-element appearance controls', status: 'foundation', evidence: 'src/App.tsx' },
   { id: 'feature-docs', label: 'Feature catalog and upstream category articles', status: 'implemented', evidence: 'src/catalog.ts' },
+  { id: 'action-illustrations', label: 'Local action imagery on every implemented feature and overlay surface', status: 'implemented', evidence: 'src/action-illustrations.ts' },
   { id: 'local-state', label: 'Versioned browser-local visitor state', status: 'implemented', evidence: 'src/storage.ts' },
   { id: 'network-free', label: 'No runtime API, CDN, analytics, or remote asset dependency', status: 'implemented', evidence: 'src/privacy.test.ts' },
   { id: 'pages-delivery', label: 'GitHub Pages build and deploy workflow', status: 'implemented', evidence: '.github/workflows/pages.yml' },
@@ -65,6 +66,7 @@ export const requiredCoverageIds = [
   'notifications',
   'appearance',
   'feature-docs',
+  'action-illustrations',
   'local-state',
   'network-free',
   'pages-delivery',
@@ -88,4 +90,37 @@ export const requiredCoverageIds = [
   'offline-docs',
   'captures',
   'private-vocabulary',
+] as const;
+
+// Every non-planned claim is deliberately classified. Rendered claims are
+// exercised against the real App in coverage.test.ts; infrastructure claims
+// are covered by the cited focused test or delivery workflow. Keeping these
+// lists explicit prevents a new inventory row from inheriting proof by
+// accident.
+export const requiredRenderedCoverageIds = [
+  'm3-shell',
+  'tab-docking',
+  'tab-state',
+  'tab-search-current',
+  'tab-search-group',
+  'tab-search-groups',
+  'tab-search-master',
+  'filtered-menus',
+  'command-palette',
+  'languages',
+  'funny-levels',
+  'emoji-toggle',
+  'school-shell',
+  'notifications',
+  'appearance',
+  'feature-docs',
+  'action-illustrations',
+  'private-vocabulary',
+] as const;
+
+export const requiredNonRenderedCoverageIds = [
+  'local-state',
+  'network-free',
+  'pages-delivery',
+  'automated-tests',
 ] as const;

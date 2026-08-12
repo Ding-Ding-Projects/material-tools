@@ -1,6 +1,5 @@
 import { type ChangeEvent, type KeyboardEvent as ReactKeyboardEvent, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
-  applyPrivateVocabulary,
   cachePrivateVocabulary,
   clearPrivateVocabulary,
   loadPrivateVocabulary,
@@ -10,6 +9,7 @@ import {
   type PrivateVocabularyDocument,
 } from '../vocabulary';
 import type { LanguageMode } from '../types';
+import { ActionIllustration } from './ActionIllustration';
 
 const PREVIEW_SOURCE = 'Windows setup, mapped.';
 
@@ -19,10 +19,15 @@ interface PrivateVocabularyControlProps {
   schoolMode?: boolean;
 }
 
+interface LocalizedFailure {
+  english: string;
+  cantonese: string;
+}
+
 export function PrivateVocabularyControl({ compact = false, language = 'en', schoolMode = false }: PrivateVocabularyControlProps) {
   const [document, setDocument] = useState<PrivateVocabularyDocument | null>(() => loadPrivateVocabulary());
   const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<LocalizedFailure | null>(null);
   const [compactOpen, setCompactOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const compactTriggerRef = useRef<HTMLButtonElement>(null);
@@ -30,7 +35,7 @@ export function PrivateVocabularyControl({ compact = false, language = 'en', sch
   const compactWasOpenRef = useRef(false);
   const activeLanguage = schoolMode ? 'en' : language;
   const text = (english: string, cantonese: string) => activeLanguage === 'yue' ? cantonese : activeLanguage === 'both' ? `${english} · ${cantonese}` : english;
-  const visibleError = error ? text(error, '檔案未能通過版本、格式或者大小驗證。') : null;
+  const visibleError = error ? text(error.english, error.cantonese) : null;
 
   useEffect(() => {
     const synchronize = () => setDocument(loadPrivateVocabulary());
@@ -49,32 +54,53 @@ export function PrivateVocabularyControl({ compact = false, language = 'en', sch
     setMessage(null);
     setError(null);
     if (!file) return;
-    if (file.size > MAX_PRIVATE_VOCABULARY_BYTES) {
-      setError('The file is larger than the 64 KiB local limit.');
+    try {
+      if (file.size > MAX_PRIVATE_VOCABULARY_BYTES) {
+        setError({
+          english: 'The file is larger than the 64 KiB local limit.',
+          cantonese: '檔案大過 64 KiB 本機上限。',
+        });
+        return;
+      }
+      const parsed = parsePrivateVocabulary(await file.text());
+      if (!parsed.document) {
+        setError({
+          english: parsed.error ?? 'The private vocabulary file could not be validated.',
+          cantonese: '檔案未能通過版本、格式或者大小驗證。',
+        });
+        return;
+      }
+      cachePrivateVocabulary(parsed.document);
+      setDocument(parsed.document);
+      const replacementCount = Object.keys(parsed.document.replacements).length;
+      setMessage(text(
+        `Loaded ${replacementCount} replacement ${replacementCount === 1 ? 'entry' : 'entries'} into this browser only.`,
+        `已將 ${replacementCount} 個替換項目只載入到呢個瀏覽器。`,
+      ));
+    } catch {
+      setError({
+        english: 'The file could not be read and cached in this browser. The previous local vocabulary remains active.',
+        cantonese: '呢個瀏覽器未能讀取同快取檔案。之前嘅本機詞彙仍然生效。',
+      });
+    } finally {
       event.target.value = '';
-      return;
     }
-    const parsed = parsePrivateVocabulary(await file.text());
-    if (!parsed.document) {
-      setError(parsed.error ?? 'The private vocabulary file could not be validated.');
-      event.target.value = '';
-      return;
-    }
-    cachePrivateVocabulary(parsed.document);
-    setDocument(parsed.document);
-    setMessage(text(
-      `Loaded ${Object.keys(parsed.document.replacements).length} replacement entries into this browser only.`,
-      `已將 ${Object.keys(parsed.document.replacements).length} 個替換項目只載入到呢個瀏覽器。`,
-    ));
-    event.target.value = '';
   }
 
   function clear() {
-    clearPrivateVocabulary();
-    setDocument(null);
-    setError(null);
-    setMessage(text('The local private vocabulary cache was cleared. Original wording is active.', '本機私人詞彙快取已清除，而家使用原本文案。'));
-    if (inputRef.current) inputRef.current.value = '';
+    try {
+      clearPrivateVocabulary();
+      setDocument(null);
+      setError(null);
+      setMessage(text('The local private vocabulary cache was cleared. Original wording is active.', '本機私人詞彙快取已清除，而家使用原本文案。'));
+      if (inputRef.current) inputRef.current.value = '';
+    } catch {
+      setMessage(null);
+      setError({
+        english: 'The local private vocabulary cache could not be cleared. The current wording remains active.',
+        cantonese: '未能清除本機私人詞彙快取。現有文案仍然生效。',
+      });
+    }
   }
 
   function closeCompact() {
@@ -142,6 +168,7 @@ export function PrivateVocabularyControl({ compact = false, language = 'en', sch
                 </div>
                 <button type="button" className="text-button" onClick={closeCompact}>{text('Close', '關閉')}</button>
               </header>
+              <ActionIllustration surface="sheet-private-vocabulary" language={activeLanguage} schoolMode={schoolMode} variant="panel" />
               <p>{text('Choose a validated version 1 JSON file up to 64 KiB. It stays only in this browser.', '揀選最多 64 KiB 嘅已驗證版本 1 JSON 檔案。內容只留喺呢個瀏覽器。')}</p>
               <label className="private-vocabulary-quick__upload">
                 <span>{text('Choose private vocabulary JSON', '揀選私人詞彙 JSON')}</span>
@@ -163,6 +190,7 @@ export function PrivateVocabularyControl({ compact = false, language = 'en', sch
   return (
     <section className="private-vocabulary-control" aria-labelledby="private-vocabulary-heading">
       <h2 id="private-vocabulary-heading">{text('Private vocabulary', '私人詞彙')}</h2>
+      <ActionIllustration surface="feature-private-vocabulary" language={activeLanguage} schoolMode={schoolMode} variant="card" />
       <p>{text('Choose a version 1 JSON file up to 64 KiB. It is validated and cached only in this browser; it is never sent, logged, exported, or added to history.', '揀選最多 64 KiB 嘅版本 1 JSON 檔案。內容只會喺呢個瀏覽器驗證同快取，唔會傳送、記錄、匯出或者加入歷史。')}</p>
       <label>
         {text('Private vocabulary JSON file', '私人詞彙 JSON 檔案')}
@@ -173,7 +201,7 @@ export function PrivateVocabularyControl({ compact = false, language = 'en', sch
         <p>{message ?? (document ? text('A validated private browser cache is active.', '已啟用通過驗證嘅私人瀏覽器快取。') : text('No file is loaded, so shipped wording remains unchanged.', '未載入檔案，所以出廠文案保持不變。'))}</p>
       </div>
       {visibleError && <p className="field-error" role="alert">{visibleError}</p>}
-      <p className="private-vocabulary-control__preview"><span>{text('Local preview', '本機預覽')}</span><strong>{applyPrivateVocabulary(PREVIEW_SOURCE, document)}</strong></p>
+      <p className="private-vocabulary-control__preview"><span>{text('Local preview', '本機預覽')}</span><strong>{PREVIEW_SOURCE}</strong></p>
       <button type="button" className="text-button" onClick={clear} disabled={!document && !error}>{text('Clear local vocabulary', '清除本機私人詞彙')}</button>
     </section>
   );

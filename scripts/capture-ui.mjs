@@ -121,6 +121,10 @@ async function capture(name, state, width = 1440, height = 1000, captureBeyondVi
 
 await send('Page.enable');
 await send('Runtime.enable');
+const vocabularyCacheIsEmpty = await evaluate("localStorage.getItem('material-tools.private-vocabulary.v1') === null");
+if (!vocabularyCacheIsEmpty) {
+  throw new Error('Capture refused: the selected profile already contains a private-vocabulary cache. Use a fresh disposable profile.');
+}
 await waitFor("Boolean(document.querySelector('.fact-grid'))", 'the system summary');
 await waitFor("document.querySelector('.status-chip')?.textContent?.trim() === 'Fixture'", 'the privacy-safe documentation fixture');
 
@@ -140,13 +144,84 @@ for (const [tab, file] of [
 await clickTab('Settings');
 await capture('settings-dark', 'Settings, dark theme, all foundation controls', 1440, 1000, true);
 
+await evaluate("document.querySelector('#setting-private-vocabulary')?.scrollIntoView({ block: 'start' }); true");
+await delay(180);
+await capture('private-vocabulary-unloaded', 'Private-vocabulary upload in its unloaded, local-only state', 1440, 1000, false);
+
+let fixtureClearVerified = false;
+try {
+  const fixtureUploaded = await evaluate(`(() => {
+    const input = document.querySelector('#setting-private-vocabulary input[type="file"]');
+    if (!(input instanceof HTMLInputElement)) return false;
+    const payload = JSON.stringify({
+      version: 1,
+      replacements: {
+        '__material_tools_capture_fixture_original__': '__material_tools_capture_fixture_replacement__'
+      },
+      required_phrases: {}
+    });
+    const transfer = new DataTransfer();
+    transfer.items.add(new File([payload], 'capture-private-vocabulary.json', { type: 'application/json' }));
+    Object.defineProperty(input, 'files', { configurable: true, value: transfer.files });
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  })()`);
+  if (!fixtureUploaded) throw new Error('The private-vocabulary file input was not available for the bounded capture fixture.');
+  await waitFor(`(() => {
+    const toast = document.querySelector('.toast');
+    const illustration = toast?.querySelector('.action-illustration img');
+    return toast?.textContent?.includes('Private vocabulary loaded')
+      && illustration instanceof HTMLImageElement
+      && illustration.complete
+      && illustration.naturalWidth > 0;
+  })()`, 'the private-vocabulary success notification and its action illustration');
+  await capture('private-vocabulary-notification', 'Private-vocabulary success notification with its action illustration', 1440, 1000, false);
+
+  const clearClicked = await evaluate(`(() => {
+    document.querySelector('.toast button')?.click();
+    const clear = [...document.querySelectorAll('#setting-private-vocabulary button')]
+      .find((button) => button.textContent?.trim() === 'Clear local vocabulary');
+    clear?.click();
+    return Boolean(clear);
+  })()`);
+  if (!clearClicked) throw new Error('The bounded private-vocabulary fixture could not be cleared.');
+  await waitFor(`(() => {
+    const status = document.querySelector('#private-vocabulary-status');
+    return status?.textContent?.includes('No private vocabulary is loaded')
+      && localStorage.getItem('material-tools.private-vocabulary.v1') === null;
+  })()`, 'the restored original wording after the bounded vocabulary fixture');
+  fixtureClearVerified = true;
+} finally {
+  if (!fixtureClearVerified) {
+    await evaluate("localStorage.removeItem('material-tools.private-vocabulary.v1'); true");
+  }
+}
+await evaluate("document.querySelectorAll('.toast button').forEach((button) => button.click()); true");
+
 await evaluate("document.querySelector('[aria-label=\"Open command palette\"]')?.click(); true");
 await waitFor("Boolean(document.querySelector('.command-palette'))", 'the command palette');
-await capture('command-palette', 'Command palette opened from the running application');
+await waitFor(`(() => {
+  const palette = document.querySelector('.command-palette');
+  const illustration = palette?.querySelector(':scope > .action-illustration--dialog');
+  const search = palette?.querySelector(':scope > .search-composite');
+  const results = palette?.querySelector(':scope > .command-results');
+  if (!(palette && illustration && search && results)) return false;
+  const paletteBox = palette.getBoundingClientRect();
+  const illustrationBox = illustration.getBoundingClientRect();
+  const searchBox = search.getBoundingClientRect();
+  const resultsBox = results.getBoundingClientRect();
+  return illustrationBox.bottom <= searchBox.top + 1
+    && searchBox.bottom <= resultsBox.top + 1
+    && illustrationBox.left >= paletteBox.left
+    && illustrationBox.right <= paletteBox.right
+    && searchBox.left >= paletteBox.left
+    && searchBox.right <= paletteBox.right;
+})()`, 'the non-overlapping command-palette illustration, search, and results layout');
+await capture('command-palette', 'Command palette opened from the running application', 1440, 1000, false);
 
 await evaluate("document.querySelector('.command-palette .regex-builder > summary')?.click(); true");
 await waitFor("Boolean(document.querySelector('.command-palette details[open] .popover-surface'))", 'the regex builder');
-await capture('regex-builder', 'Command-palette search with its anchored regular expression builder');
+await capture('regex-builder', 'Command-palette search with its anchored regular expression builder', 1440, 1000, false);
 
 await evaluate("document.querySelector('[aria-label=\"Close command palette\"]')?.click(); true");
 await clickTab('Settings');
@@ -172,6 +247,13 @@ await waitFor("document.querySelector('.app-shell')?.getAttribute('data-theme') 
 await waitFor("![...document.querySelectorAll('[role=\"tab\"]')].some((tab) => tab.textContent?.includes('總覽'))", 'the restored English labels');
 await clickTab('Overview');
 await waitFor("Boolean(document.querySelector('.fact-grid'))", 'the narrow-layout system summary');
+await evaluate(`(() => {
+  window.scrollTo(0, 0);
+  document.querySelector('main')?.scrollTo(0, 0);
+  document.querySelector('.tab-rail')?.scrollTo(0, 0);
+  return true;
+})()`);
+await waitFor("scrollY === 0 && (document.querySelector('main')?.scrollTop ?? 0) === 0", 'the narrow-layout scroll origin');
 await capture('overview-narrow', 'Overview at a narrow touch layout', 480, 900, false);
 
 await send('Emulation.clearDeviceMetricsOverride');
@@ -184,6 +266,7 @@ writeFileSync(resolve(outputDirectory, 'manifest.json'), `${JSON.stringify({
   releaseTag,
   source: page.url,
   captureMethod: 'Locally built unsigned Squirrel.Windows package from the stated commit, hidden Win32 desktop, deterministic non-device-specific fixture, Chrome DevTools Protocol Page.captureScreenshot',
+  privacyState: 'No user-supplied vocabulary was read. A bounded neutral in-memory document exercised the loaded notification, was cleared immediately, and left no cached value.',
   captures,
 }, null, 2)}\n`);
 

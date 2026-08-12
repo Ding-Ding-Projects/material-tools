@@ -9,6 +9,7 @@ import {
   useState,
 } from 'react';
 import { articles, initialState } from './catalog';
+import { illustrationSurfaceForArticle } from './action-illustrations';
 import { materialThemeTokens } from './color';
 import { coverageInventory } from './coverage';
 import { matchesSearch } from './regex';
@@ -26,9 +27,11 @@ import type {
   ThemeMode,
 } from './types';
 import { FilteredMenu, type MenuAction } from './components/FilteredMenu';
+import { ActionIllustration } from './components/ActionIllustration';
 import { ColorControl } from './components/ColorControl';
 import { PrivateVocabularyControl } from './components/PrivateVocabularyControl';
 import { SearchBox } from './components/SearchBox';
+import { usePrivateVocabularyBoundary } from './usePrivateVocabularyBoundary';
 
 const emptySearch = (): SearchState => ({ query: '', regex: false, flags: 'i' });
 
@@ -59,6 +62,11 @@ function localized(en: string, yue: string, preferences: Preferences) {
   if (mode === 'yue') return yue;
   if (mode === 'both') return `${en} · ${yue}`;
   return en;
+}
+
+function searchableWithVocabulary(value: string, transform: (text: string) => string) {
+  const transformed = transform(value);
+  return transformed === value ? value : `${value} ${transformed}`;
 }
 
 function heroCopy(preferences: Preferences) {
@@ -181,6 +189,10 @@ export default function App() {
   }, [state.notifications]);
 
   const preferences = state.preferences;
+  const {
+    rootRef: privateVocabularyBoundaryRef,
+    transform: transformPrivateVocabulary,
+  } = usePrivateVocabularyBoundary(!preferences.schoolMode);
   const groups = useMemo(() => [...state.groups].sort((a, b) => a.order - b.order), [state.groups]);
   const orderedTabs = useMemo(
     () => [...state.tabs].sort((a, b) => a.order - b.order),
@@ -365,7 +377,7 @@ export default function App() {
       context: `${groups.find((group) => group.id === tab.groupId)?.name ?? ''} tab`,
       action: () => activateTab(tab.id),
     }));
-    return [
+    const settingsCommands = [
       ...navigation,
       { id: 'theme-light', label: 'Use light theme', context: 'Appearance setting', action: () => updatePreferences({ theme: 'light' }) },
       { id: 'theme-dark', label: 'Use dark theme', context: 'Appearance setting', action: () => updatePreferences({ theme: 'dark' }) },
@@ -373,19 +385,31 @@ export default function App() {
       { id: 'show-discovery', label: 'Open tab discovery', context: 'Navigation tool', action: () => { setDiscoveryOpen(true); setPaletteOpen(false); } },
       { id: 'toggle-emoji', label: preferences.showEmoji ? 'Hide message emoji decorations' : 'Show message emoji decorations', context: 'Message setting', action: () => updatePreferences({ showEmoji: !preferences.showEmoji }) },
     ];
+    if (!preferences.schoolMode) {
+      settingsCommands.push({
+        id: 'private-vocabulary',
+        label: 'Open private vocabulary upload',
+        context: 'Local language setting',
+        action: () => {
+          activateTab('settings', false);
+          window.setTimeout(() => document.getElementById('setting-private-vocabulary')?.focus({ preventScroll: false }), 0);
+        },
+      });
+    }
+    return settingsCommands;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groups, preferences.showEmoji, state.tabs]);
+  }, [groups, preferences.schoolMode, preferences.showEmoji, state.tabs]);
 
   const filteredPalette = useMemo(
-    () => paletteCommands.filter((command) => matchesSearch(`${command.label} ${command.context}`, paletteSearch)),
-    [paletteCommands, paletteSearch],
+    () => paletteCommands.filter((command) => matchesSearch(searchableWithVocabulary(`${command.label} ${command.context}`, transformPrivateVocabulary), paletteSearch)),
+    [paletteCommands, paletteSearch, transformPrivateVocabulary],
   );
 
   const liveToasts = state.notifications.filter((notification) => !notification.dismissed).slice(0, 3);
   const selectedAppearance = appearanceTarget ? state.appearance[appearanceTarget] : undefined;
 
   return (
-    <div className={`app-shell dock-${preferences.dock}`}>
+    <div ref={privateVocabularyBoundaryRef} className={`app-shell dock-${preferences.dock}`}>
       <header className="top-app-bar">
         <button className="brand" type="button" onClick={() => activateTab('overview')} aria-label="Open Material Tools overview">
           <span className="brand__mark" aria-hidden="true">M</span>
@@ -407,7 +431,7 @@ export default function App() {
           >
             <span className="mobile-nav-toggle__glyph" aria-hidden="true" />
           </button>
-          <PrivateVocabularyControl compact language={preferences.language} schoolMode={preferences.schoolMode} />
+          {!preferences.schoolMode && <PrivateVocabularyControl compact language={preferences.language} />}
           <button type="button" className="tonal-button tab-discovery-trigger" onClick={() => setDiscoveryOpen((open) => !open)} aria-expanded={discoveryOpen}>
             Tab discovery
           </button>
@@ -427,6 +451,7 @@ export default function App() {
         inert={narrowLayout && !mobileNavOpen}
         onKeyDown={containMobileNavigationFocus}
       >
+        {narrowLayout && <ActionIllustration surface="sheet-mobile-navigation" language={preferences.language} schoolMode={preferences.schoolMode} variant="panel" eager />}
         <div
           className="tab-rail__list"
           role="tablist"
@@ -492,6 +517,7 @@ export default function App() {
             activeGroupId={activeRecord.groupId}
             groups={state.groups}
             preferences={preferences}
+            transform={transformPrivateVocabulary}
             currentSearch={currentSearch}
             groupSearch={groupSearch}
             groupNameSearch={groupNameSearch}
@@ -528,6 +554,7 @@ export default function App() {
             state={state}
             updatePreferences={updatePreferences}
             notify={announce}
+            transform={transformPrivateVocabulary}
           />
         )}
         {activeTab === 'notifications' && (
@@ -537,19 +564,24 @@ export default function App() {
             setSearch={setNotificationSearch}
             dismiss={(id) => setState((current) => ({ ...current, notifications: current.notifications.map((item) => item.id === id ? { ...item, dismissed: true } : item) }))}
             notify={announce}
+            transform={transformPrivateVocabulary}
           />
         )}
       </main>
 
       {contextTab && (() => {
         const tab = state.tabs.find((item) => item.id === contextTab);
-        return tab ? <FilteredMenu title={`${tab.label} tab`} actions={contextActions(tab)} onClose={() => setContextTab(null)} returnFocusId={`tab-${tab.id}`} className="floating-panel tab-context-panel" /> : null;
+        return tab ? <FilteredMenu title={`${tab.label} tab`} actions={contextActions(tab)} onClose={() => setContextTab(null)} returnFocusId={`tab-${tab.id}`} className="floating-panel tab-context-panel" illustrationSurface="dialog-tab-context" language={preferences.language} schoolMode={preferences.schoolMode} transform={transformPrivateVocabulary} /> : null;
       })()}
 
       {groupPickerTab && (
         <FilteredMenu
           title="Move into group"
           className="floating-panel group-picker-panel"
+          illustrationSurface="dialog-group-picker"
+          language={preferences.language}
+          schoolMode={preferences.schoolMode}
+          transform={transformPrivateVocabulary}
           actions={groups.map((group) => ({
             id: group.id,
             label: localized(group.name, group.nameYue, preferences),
@@ -564,6 +596,8 @@ export default function App() {
       {appearanceTarget && (
         <AppearanceEditor
           target={appearanceTarget}
+          preferences={preferences}
+          transform={transformPrivateVocabulary}
           value={selectedAppearance ?? { accent: preferences.accent, radius: 18, emphasis: 'regular' }}
           onChange={(patch) => saveAppearance(appearanceTarget, patch)}
           onReset={() => setState((current) => {
@@ -587,7 +621,8 @@ export default function App() {
                 <button type="button" className="text-button" onClick={closePalette}>Close</button>
               </div>
             </header>
-            <SearchBox label="Commands and destinations" state={paletteSearch} onChange={setPaletteSearch} resultCount={filteredPalette.length} autoFocus />
+            <ActionIllustration surface="dialog-command-palette" language={preferences.language} schoolMode={preferences.schoolMode} variant="panel" eager />
+            <SearchBox label="Commands and destinations" state={paletteSearch} onChange={setPaletteSearch} resultCount={filteredPalette.length} autoFocus language={preferences.language} schoolMode={preferences.schoolMode} />
             <div className="palette-results" aria-label="Command results">
               {filteredPalette.map((command) => (
                 <button key={command.id} type="button" onClick={command.action}>
@@ -605,6 +640,7 @@ export default function App() {
         {liveToasts.map((notification) => (
           <article className={`toast toast--${notification.kind}`} key={notification.id}>
             {preferences.showEmoji && <span className="toast__decoration" aria-hidden="true">{notification.kind === 'success' ? '✅' : notification.kind === 'warning' ? '⚠️' : 'ℹ️'}</span>}
+            <ActionIllustration surface="notification-toast" language={preferences.language} schoolMode={preferences.schoolMode} variant="toast" eager />
             <div><strong>{notification.title}</strong><p>{notification.body}</p></div>
             <button
               type="button"
@@ -671,6 +707,7 @@ interface DiscoveryProps {
   activeGroupId: string;
   groups: PersistedState['groups'];
   preferences: Preferences;
+  transform: (text: string) => string;
   currentSearch: SearchState;
   groupSearch: SearchState;
   groupNameSearch: SearchState;
@@ -685,12 +722,12 @@ interface DiscoveryProps {
 }
 
 function DiscoveryPanel(props: DiscoveryProps) {
-  const current = props.visibleTabs.filter((tab) => matchesSearch(tab.label, props.currentSearch));
-  const grouped = props.tabs.filter((tab) => tab.groupId === props.activeGroupId && matchesSearch(tab.label, props.groupSearch));
-  const groupResults = props.groups.filter((group) => matchesSearch(`${group.name} ${group.nameYue}`, props.groupNameSearch));
+  const current = props.visibleTabs.filter((tab) => matchesSearch(searchableWithVocabulary(tab.label, props.transform), props.currentSearch));
+  const grouped = props.tabs.filter((tab) => tab.groupId === props.activeGroupId && matchesSearch(searchableWithVocabulary(tab.label, props.transform), props.groupSearch));
+  const groupResults = props.groups.filter((group) => matchesSearch(searchableWithVocabulary(`${group.name} ${group.nameYue}`, props.transform), props.groupNameSearch));
   const master = props.tabs.filter((tab) => {
     const group = props.groups.find((item) => item.id === tab.groupId);
-    return matchesSearch(`${tab.label} ${tab.labelYue} ${group?.name ?? ''}`, props.masterSearch);
+    return matchesSearch(searchableWithVocabulary(`${tab.label} ${tab.labelYue} ${group?.name ?? ''}`, props.transform), props.masterSearch);
   });
 
   const tabResults = (items: TabRecord[]) => (
@@ -708,16 +745,17 @@ function DiscoveryPanel(props: DiscoveryProps) {
   return (
     <section className="discovery-panel" aria-label="Tab discovery">
       <header><div><span className="eyebrow">Four independent searches</span><h2>Find every open destination</h2></div><button type="button" className="text-button" onClick={props.onClose}>Close</button></header>
+      <ActionIllustration surface="panel-tab-discovery" language={props.preferences.language} schoolMode={props.preferences.schoolMode} variant="panel" />
       <div className="discovery-grid">
-        <article><SearchBox label="Current tab strip" state={props.currentSearch} onChange={props.setCurrentSearch} resultCount={current.length} />{tabResults(current)}</article>
-        <article><SearchBox label="Current tab group" state={props.groupSearch} onChange={props.setGroupSearch} resultCount={grouped.length} />{tabResults(grouped)}</article>
+        <article><SearchBox label="Current tab strip" state={props.currentSearch} onChange={props.setCurrentSearch} resultCount={current.length} language={props.preferences.language} schoolMode={props.preferences.schoolMode} />{tabResults(current)}</article>
+        <article><SearchBox label="Current tab group" state={props.groupSearch} onChange={props.setGroupSearch} resultCount={grouped.length} language={props.preferences.language} schoolMode={props.preferences.schoolMode} />{tabResults(grouped)}</article>
         <article>
-          <SearchBox label="Tab groups by name" state={props.groupNameSearch} onChange={props.setGroupNameSearch} resultCount={groupResults.length} />
+          <SearchBox label="Tab groups by name" state={props.groupNameSearch} onChange={props.setGroupNameSearch} resultCount={groupResults.length} language={props.preferences.language} schoolMode={props.preferences.schoolMode} />
           <div className="discovery-results">
             {groupResults.map((group) => <button type="button" key={group.id} onClick={() => group.collapsed && props.toggleGroup(group.id)}><span>{localized(group.name, group.nameYue, props.preferences)}</span><small>{group.collapsed ? 'Collapsed · reveal' : 'Expanded'}</small></button>)}
           </div>
         </article>
-        <article><SearchBox label="Master tab search" state={props.masterSearch} onChange={props.setMasterSearch} resultCount={master.length} />{tabResults(master)}</article>
+        <article><SearchBox label="Master tab search" state={props.masterSearch} onChange={props.setMasterSearch} resultCount={master.length} language={props.preferences.language} schoolMode={props.preferences.schoolMode} />{tabResults(master)}</article>
       </div>
     </section>
   );
@@ -738,7 +776,7 @@ function OverviewPage({ preferences, state, narrowLayout, activateTab, editAppea
           <p>{heroCopy(preferences)}</p>
           <div className="button-row">
             <a className="filled-button link-button" href={verifiedInstaller.url} target="_blank" rel="noreferrer">
-              {localized(`Download ${verifiedInstaller.version} for Windows (x64)`, `下載 Windows ${verifiedInstaller.version}（x64）`, preferences)}
+              {localized('Download', '下載', preferences)} <span data-private-vocabulary-verbatim>{verifiedInstaller.version}</span> {localized('for Windows (x64)', 'Windows（x64）', preferences)}
             </a>
             <button className="tonal-button" type="button" onClick={() => activateTab('applications')}>Explore the workflow</button>
             <button className="text-button" type="button" onClick={() => activateTab('settings')}>Personalize this site</button>
@@ -746,23 +784,27 @@ function OverviewPage({ preferences, state, narrowLayout, activateTab, editAppea
           {narrowLayout ? (
             <details className="release-proof release-proof--compact">
               <summary>{localized('Verified unsigned installer details', '已驗證未簽署安裝程式資料', preferences)}</summary>
-              <p>{installerProof}</p>
+              <p data-private-vocabulary-verbatim>{installerProof}</p>
             </details>
-          ) : <p className="release-proof">{installerProof}</p>}
+          ) : <p className="release-proof" data-private-vocabulary-verbatim>{installerProof}</p>}
         </div>
-        <div className="hero-diagram" aria-label="Workflow from applications through delivery">
-          <span>Apps</span><i aria-hidden="true">→</i><span>Tweaks</span><i aria-hidden="true">→</i><span>Fixes</span><i aria-hidden="true">→</i><span>Delivery</span>
+        <div className="hero-card__visual">
+          <ActionIllustration surface="feature-overview" language={preferences.language} schoolMode={preferences.schoolMode} variant="hero" eager />
+          <div className="hero-diagram" aria-label="Workflow from applications through delivery">
+            <span>Apps</span><i aria-hidden="true">→</i><span>Tweaks</span><i aria-hidden="true">→</i><span>Fixes</span><i aria-hidden="true">→</i><span>Delivery</span>
+          </div>
         </div>
       </section>
       <section className="metrics" aria-label="Coverage summary">
-        <article><strong>{articles.length}</strong><span>upstream feature categories</span></article>
-        <article><strong>{state.tabs.filter((tab) => tab.pinned).length}</strong><span>pinned destinations</span></article>
-        <article><strong>{coverageInventory.filter((item) => item.status === 'implemented').length}</strong><span>implemented contract slices</span></article>
+        <article><strong data-private-vocabulary-verbatim>{articles.length}</strong><span>upstream feature categories</span></article>
+        <article><strong data-private-vocabulary-verbatim>{state.tabs.filter((tab) => tab.pinned).length}</strong><span>pinned destinations</span></article>
+        <article><strong data-private-vocabulary-verbatim>{coverageInventory.filter((item) => item.status === 'implemented').length}</strong><span>implemented contract slices</span></article>
       </section>
       <section className="section-heading"><div><span className="eyebrow">Feature catalog</span><h2>One article for every upstream category</h2></div><p>Each card is backed by the public WinUtil documentation snapshot cited in the article.</p></section>
       <div className="feature-grid">
         {articles.map((article) => (
           <article key={article.id} className="feature-card editable-surface" style={appearanceStyle(state.appearance[`card:${article.id}`])}>
+            <ActionIllustration surface={illustrationSurfaceForArticle(article.id)} language={preferences.language} schoolMode={preferences.schoolMode} variant="card" />
             <span className="eyebrow">{article.eyebrow}</span>
             <h3>{localized(article.title, article.titleYue, preferences)}</h3>
             <p>{localized(article.summary, article.summaryYue, preferences)}</p>
@@ -782,7 +824,10 @@ function ArticlePage({ article, preferences, appearance, editAppearance, notify 
     <article id={`panel-${article.id}`} role="tabpanel" aria-labelledby={`tab-${article.id}`} className="page article-page">
       <header className="article-hero editable-surface" style={appearanceStyle(appearance)}>
         <div><span className="eyebrow">{article.eyebrow}</span><h1>{localized(article.title, article.titleYue, preferences)}</h1><p>{localized(article.summary, article.summaryYue, preferences)}</p></div>
-        <button type="button" className="tonal-button" onClick={editAppearance}>Edit appearance…</button>
+        <div className="article-hero__visual">
+          <ActionIllustration surface={illustrationSurfaceForArticle(article.id)} language={preferences.language} schoolMode={preferences.schoolMode} variant="article" eager />
+          <button type="button" className="tonal-button" onClick={editAppearance}>Edit appearance…</button>
+        </div>
       </header>
       <div className="article-layout">
         <section className="article-body">
@@ -814,21 +859,24 @@ function Segmented<T extends string>({ label, value, values, onChange }: { label
   );
 }
 
-function SettingsPage({ state, updatePreferences, notify }: { state: PersistedState; updatePreferences: (patch: Partial<Preferences>) => void; notify: (kind: NotificationRecord['kind'], title: string, body: string) => void }) {
+function SettingsPage({ state, updatePreferences, notify, transform }: { state: PersistedState; updatePreferences: (patch: Partial<Preferences>) => void; notify: (kind: NotificationRecord['kind'], title: string, body: string) => void; transform: (text: string) => string }) {
   const p = state.preferences;
   const [search, setSearch] = useState<SearchState>(emptySearch);
   const visible = {
-    language: matchesSearch(`Language voice English Cantonese bilingual funny emoji ${p.language} ${p.funnyEnglish} ${p.funnyCantonese} ${p.showEmoji}`, search),
-    school: matchesSearch(`School mode shell display name forced English ${p.schoolModeName} ${p.schoolMode}`, search),
-    appearance: matchesSearch(`Appearance theme accent color density text scale ${p.theme} ${p.accent} ${p.density} ${p.fontScale}`, search),
-    navigation: matchesSearch(`Tab navigation dock edge pinning grouping collapsed order ${p.dock}`, search),
-    vocabulary: matchesSearch('Private vocabulary local JSON upload cache clear original wording', search),
+    language: matchesSearch(searchableWithVocabulary(`Language voice English Cantonese bilingual funny emoji ${p.language} ${p.funnyEnglish} ${p.funnyCantonese} ${p.showEmoji}`, transform), search),
+    school: matchesSearch(searchableWithVocabulary(`School mode shell display name forced English ${p.schoolModeName} ${p.schoolMode}`, transform), search),
+    appearance: matchesSearch(searchableWithVocabulary(`Appearance theme accent color density text scale ${p.theme} ${p.accent} ${p.density} ${p.fontScale}`, transform), search),
+    navigation: matchesSearch(searchableWithVocabulary(`Tab navigation dock edge pinning grouping collapsed order ${p.dock}`, transform), search),
+    vocabulary: !p.schoolMode && matchesSearch(searchableWithVocabulary('Private vocabulary local JSON upload cache clear original wording', transform), search),
   };
   const visibleCount = Object.values(visible).filter(Boolean).length;
+  const visibleCoverage = p.schoolMode
+    ? coverageInventory.filter((item) => item.id !== 'private-vocabulary')
+    : coverageInventory;
   return (
     <div id="panel-settings" role="tabpanel" aria-labelledby="tab-settings" className="page settings-page">
-      <header className="page-heading"><span className="eyebrow">Local visitor settings</span><h1>Make the documentation yours</h1><p>Everything on this page stays in this browser. No account, analytics, or network sync is used.</p></header>
-      <div className="settings-search"><SearchBox label="Settings on this page" state={search} onChange={setSearch} resultCount={visibleCount} /></div>
+      <header className="page-heading page-heading--illustrated"><div><span className="eyebrow">Local visitor settings</span><h1>Make the documentation yours</h1><p>Everything on this page stays in this browser. No account, analytics, or network sync is used.</p></div><ActionIllustration surface="feature-settings" language={p.language} schoolMode={p.schoolMode} variant="page" eager /></header>
+      <div className="settings-search"><SearchBox label="Settings on this page" state={search} onChange={setSearch} resultCount={visibleCount} language={p.language} schoolMode={p.schoolMode} /></div>
       <div className="settings-grid">
         {visible.language && <section className="settings-card" id="setting-language">
           <h2>Language and voice</h2>
@@ -854,7 +902,7 @@ function SettingsPage({ state, updatePreferences, notify }: { state: PersistedSt
         {visible.appearance && <section className="settings-card" id="setting-appearance">
           <h2>Appearance</h2>
           <Segmented<ThemeMode> label="Theme" value={p.theme} onChange={(theme) => updatePreferences({ theme })} values={[{ value: 'light', label: 'Light' }, { value: 'dark', label: 'Dark' }, { value: 'system', label: 'System' }]} />
-          <ColorControl label="Accent seed color" value={p.accent} onChange={(accent) => updatePreferences({ accent })} />
+          <ColorControl label="Accent seed color" value={p.accent} onChange={(accent) => updatePreferences({ accent })} language={p.language} schoolMode={p.schoolMode} transform={transform} />
           <Segmented label="Density" value={p.density} onChange={(density) => updatePreferences({ density })} values={[{ value: 'comfortable', label: 'Comfortable' }, { value: 'compact', label: 'Compact' }]} />
           <label className="range-field">Text scale <output>{Math.round(p.fontScale * 100)}%</output><input aria-label="Text scale" type="range" min="0.9" max="1.3" step="0.05" value={p.fontScale} onChange={(event) => updatePreferences({ fontScale: Number(event.target.value) })} /></label>
         </section>}
@@ -864,32 +912,33 @@ function SettingsPage({ state, updatePreferences, notify }: { state: PersistedSt
           <Segmented<DockEdge> label="Dock edge" value={p.dock} onChange={(dock) => updatePreferences({ dock })} values={[{ value: 'left', label: 'Left' }, { value: 'right', label: 'Right' }, { value: 'top', label: 'Top' }, { value: 'bottom', label: 'Bottom' }]} />
           <p>Pinning, grouping, collapsed groups, order, and dock position persist automatically.</p>
         </section>}
-        {visible.vocabulary && <section className="settings-card" id="setting-private-vocabulary"><PrivateVocabularyControl language={p.language} schoolMode={p.schoolMode} /></section>}
+        {visible.vocabulary && <section className="settings-card" id="setting-private-vocabulary" tabIndex={-1}><PrivateVocabularyControl language={p.language} /></section>}
         {visibleCount === 0 && <p className="empty-state">No settings match this search.</p>}
       </div>
       <section className="coverage-section">
         <div className="section-heading"><div><span className="eyebrow">Hand-written inventory</span><h2>Current contract coverage</h2></div><p>Foundation marks a meaningful first slice whose deeper contract remains documented as incomplete.</p></div>
         <div className="coverage-table" role="table" aria-label="Feature coverage inventory">
-          {coverageInventory.map((item) => <div role="row" key={item.id}><span role="cell" className={`status-chip status-chip--${item.status}`}>{item.status}</span><strong role="cell">{item.label}</strong><code role="cell">{item.evidence}</code></div>)}
+          {visibleCoverage.map((item) => <div role="row" key={item.id}><span role="cell" className={`status-chip status-chip--${item.status}`}>{item.status}</span><strong role="cell">{item.label}</strong><code role="cell">{item.evidence}</code></div>)}
         </div>
       </section>
     </div>
   );
 }
 
-function NotificationsPage({ state, search, setSearch, dismiss, notify }: { state: PersistedState; search: SearchState; setSearch: (value: SearchState) => void; dismiss: (id: string) => void; notify: (kind: NotificationRecord['kind'], title: string, body: string) => void }) {
-  const filtered = state.notifications.filter((item) => matchesSearch(`${item.title} ${item.body} ${item.kind}`, search));
+function NotificationsPage({ state, search, setSearch, dismiss, notify, transform }: { state: PersistedState; search: SearchState; setSearch: (value: SearchState) => void; dismiss: (id: string) => void; notify: (kind: NotificationRecord['kind'], title: string, body: string) => void; transform: (text: string) => string }) {
+  const filtered = state.notifications.filter((item) => matchesSearch(searchableWithVocabulary(`${item.title} ${item.body} ${item.kind}`, transform), search));
   return (
     <div id="panel-notifications" role="tabpanel" aria-labelledby="tab-notifications" className="page">
-      <header className="page-heading"><span className="eyebrow">Reviewable history</span><h1>Notifications</h1><p>Informational messages remain available after their corner notification is dismissed.</p></header>
+      <header className="page-heading page-heading--illustrated"><div><span className="eyebrow">Reviewable history</span><h1>Notifications</h1><p>Informational messages remain available after their corner notification is dismissed.</p></div><ActionIllustration surface="feature-notifications" language={state.preferences.language} schoolMode={state.preferences.schoolMode} variant="page" eager /></header>
       <div className="notification-tools">
-        <SearchBox label="Notification history" state={search} onChange={setSearch} resultCount={filtered.length} />
+        <SearchBox label="Notification history" state={search} onChange={setSearch} resultCount={filtered.length} language={state.preferences.language} schoolMode={state.preferences.schoolMode} />
         <button type="button" className="tonal-button" onClick={() => notify('success', 'Sample notification', 'This non-blocking message is also recorded in history.')}>Create sample notification</button>
       </div>
       <div className="notification-list">
         {filtered.map((item) => (
           <article key={item.id}>
-            <div><span className={`status-chip status-chip--${item.kind}`}>{item.kind}</span><h2>{item.title}</h2><p>{item.body}</p><time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleString()}</time></div>
+            <ActionIllustration surface="feature-notifications" language={state.preferences.language} schoolMode={state.preferences.schoolMode} variant="thumbnail" />
+            <div><span className={`status-chip status-chip--${item.kind}`} data-private-vocabulary-verbatim>{item.kind}</span><h2>{item.title}</h2><p>{item.body}</p><time dateTime={item.createdAt} data-private-vocabulary-verbatim>{new Date(item.createdAt).toLocaleString()}</time></div>
             {!item.dismissed && <button type="button" className="text-button" onClick={() => dismiss(item.id)}>Dismiss corner message</button>}
           </article>
         ))}
@@ -899,16 +948,16 @@ function NotificationsPage({ state, search, setSearch, dismiss, notify }: { stat
   );
 }
 
-function AppearanceEditor({ target, value, onChange, onReset, onClose }: { target: string; value: ElementAppearance; onChange: (patch: Partial<ElementAppearance>) => void; onReset: () => void; onClose: () => void }) {
+function AppearanceEditor({ target, preferences, value, onChange, onReset, onClose, transform }: { target: string; preferences: Preferences; value: ElementAppearance; onChange: (patch: Partial<ElementAppearance>) => void; onReset: () => void; onClose: () => void; transform: (text: string) => string }) {
   const [search, setSearch] = useState<SearchState>(emptySearch);
   const fallbackFocusId = target.startsWith('tab:') ? `tab-${target.slice(4)}` : null;
   const openerRef = useRef(document.activeElement instanceof HTMLElement ? document.activeElement : null);
   const visible = {
-    accent: matchesSearch(`Accent color ${value.accent}`, search),
-    radius: matchesSearch(`Corner radius shape ${value.radius}`, search),
-    emphasis: matchesSearch(`Text emphasis font weight ${value.emphasis}`, search),
-    preview: matchesSearch('Live element preview', search),
-    reset: matchesSearch('Reset this element defaults', search),
+    accent: matchesSearch(searchableWithVocabulary(`Accent color ${value.accent}`, transform), search),
+    radius: matchesSearch(searchableWithVocabulary(`Corner radius shape ${value.radius}`, transform), search),
+    emphasis: matchesSearch(searchableWithVocabulary(`Text emphasis font weight ${value.emphasis}`, transform), search),
+    preview: matchesSearch(searchableWithVocabulary('Live element preview', transform), search),
+    reset: matchesSearch(searchableWithVocabulary('Reset this element defaults', transform), search),
   };
   const visibleCount = Object.values(visible).filter(Boolean).length;
 
@@ -922,8 +971,9 @@ function AppearanceEditor({ target, value, onChange, onReset, onClose }: { targe
   return (
     <section className="appearance-editor floating-panel" role="dialog" aria-label={`Appearance editor for ${target}`} onKeyDown={(event) => event.key === 'Escape' && onClose()}>
       <header><div><span className="eyebrow">Per-element appearance</span><h2>{target.replace(':', ' · ')}</h2></div><button type="button" className="text-button" onClick={onClose}>Close</button></header>
-      <SearchBox label="Appearance editor settings" state={search} onChange={setSearch} resultCount={visibleCount} autoFocus />
-      {visible.accent && <ColorControl label="Element accent color" value={value.accent} onChange={(accent) => onChange({ accent })} />}
+      <ActionIllustration surface="dialog-appearance-editor" language={preferences.language} schoolMode={preferences.schoolMode} variant="panel" />
+      <SearchBox label="Appearance editor settings" state={search} onChange={setSearch} resultCount={visibleCount} autoFocus language={preferences.language} schoolMode={preferences.schoolMode} />
+      {visible.accent && <ColorControl label="Element accent color" value={value.accent} onChange={(accent) => onChange({ accent })} language={preferences.language} schoolMode={preferences.schoolMode} transform={transform} />}
       {visible.radius && <label className="range-field">Corner radius <output>{value.radius}px</output><input aria-label="Corner radius" type="range" min="0" max="32" value={value.radius} onChange={(event) => onChange({ radius: Number(event.target.value) })} /></label>}
       {visible.emphasis && <Segmented label="Text emphasis" value={value.emphasis} onChange={(emphasis) => onChange({ emphasis })} values={[{ value: 'regular', label: 'Regular' }, { value: 'strong', label: 'Strong' }]} />}
       {visible.preview && <div className="appearance-preview" style={appearanceStyle(value)}>Live element preview</div>}

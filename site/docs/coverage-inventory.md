@@ -14,8 +14,9 @@ This inventory is intentionally hand-written. The corresponding source list is t
 - Independent five-level English and Cantonese funny-level controls wired to landing copy, plus a persisted message-decoration toggle.
 - Non-blocking notifications and searchable notification history.
 - Searchable global and per-element appearance controls with continuous HSL/HEX color editing and automatic text contrast.
-- An always-visible, localized, bounded private-vocabulary JSON upload with version/schema validation, browser-only cache, clear/error state, and original wording when absent. No mappings or vocabulary payloads are bundled.
+- An always-visible (outside School mode), localized private-vocabulary JSON upload using the same bounded version-1 contract as the desktop app. It rejects duplicate, unsafe, over-deep, oversized, over-count, or malformed input; keeps a validated browser-only cache; applies approved replacements to visible copy and accessible names; and restores original wording on clear or School-mode activation. No mappings or vocabulary payloads are bundled.
 - Feature articles for Applications, Tweaks, Config & Fixes, Updates, Automation, and Win11 Creator, each with a commit-pinned public source.
+- Locally bundled action illustrations on every implemented feature destination, article, dialog, popover, mobile sheet, notification, and private-vocabulary surface. The hand-written binding inventory and focused tests prevent an implemented surface from silently losing its image.
 - A direct home-page download for the verified unsigned Windows x64 installer with its release tag and SHA-256 digest.
 - Fifteen visually reviewed captures from the live Pages deployment, recorded in a commit- and workflow-bound manifest.
 - Keyboard focus, axis-aware tab navigation, reduced motion, touch-sized targets, and layouts from 320 px upward.
@@ -25,7 +26,6 @@ This inventory is intentionally hand-written. The corresponding source list is t
 
 - School mode demonstrates forced English, renaming, and control omission, but does not yet share state or an unlock credential with the desktop application.
 - The language modes and funny levels are working foundations, but every control, article detail, notification, and accessible label is not yet fully localized or voice-styled.
-- Private-vocabulary replacement is demonstrated in a local preview; applying it across every eligible user-facing text boundary remains future work.
 - Per-element appearance editing currently covers tabs and article cards; Word-depth typography, continuous multi-space color translation, import/export, presets, locking, and every pseudo-state remain future work.
 - Tab groups can be moved into, collapsed, searched, and persisted; group creation, renaming, visual decoration, and drag reordering remain future work.
 - The command palette reaches every current page and core setting, but does not yet index every nested article paragraph or expose every setting as an inline control.
@@ -36,3 +36,7 @@ This inventory is intentionally hand-written. The corresponding source list is t
 ## Source evidence
 
 The capability articles cite public WinUtil documentation at commit `ea5de27b6c66fe4f4a4c6513887d0fe5a1cd8bff`. The static article catalog in `src/catalog.ts` is the canonical source list used by the site.
+
+`src/coverage.test.ts` classifies every non-planned claim as either rendered or non-rendered evidence. It mounts the real application, operates all 18 claimed user-facing contract slices, and requires their semantic controls, actions, anchored builders, dialogs, images, and destinations to exist. A negative mutation check removes one required anchor and proves the inventory reports it missing instead of trusting the metadata row.
+
+See [Action illustrations](action-illustrations.md) for image binding, responsive behavior, accessibility, privacy, and verification details.

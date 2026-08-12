@@ -11,6 +11,7 @@ import {
   actionIllustrationAlt,
 } from '../action-illustrations';
 import { ActionIllustration } from '../components/ActionIllustration';
+import regexBuilderSource from '../components/AnchoredRegexBuilder.tsx?raw';
 
 const REQUIRED_FEATURE_PAGES = ['overview', 'install', 'tweaks', 'config', 'updates', 'microwin', 'settings'] as const;
 const REQUIRED_IMPLEMENTED_SURFACES = ['command-palette', 'regex-builder', 'notifications', 'private-vocabulary'] as const;
@@ -66,12 +67,12 @@ describe('action illustration coverage', () => {
       'ACTION_ILLUSTRATION_BINDINGS.featurePages.settings}',
       'tab.illustrationId}',
       'ACTION_ILLUSTRATION_BINDINGS.surfaces.commandPalette}',
-      'ACTION_ILLUSTRATION_BINDINGS.surfaces.regexBuilder}',
       'ACTION_ILLUSTRATION_BINDINGS.surfaces.notifications}',
       'ACTION_ILLUSTRATION_BINDINGS.surfaces.privateVocabulary}',
     ]) {
       expect(appSource).toContain(`<ActionIllustration id={${binding}`);
     }
+    expect(regexBuilderSource).toContain('<ActionIllustration id={ACTION_ILLUSTRATION_BINDINGS.surfaces.regexBuilder}');
   });
 
   it('documents the unused destructive-confirmation art instead of inventing a fake dialog', () => {

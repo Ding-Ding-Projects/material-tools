@@ -2,15 +2,18 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, ty
 import type { SystemSummary } from '../shared/contracts';
 import { ACTION_ILLUSTRATION_BINDINGS, type FeaturePageIllustrationId } from './action-illustrations';
 import { ActionIllustration } from './components/ActionIllustration';
+import { AnchoredRegexBuilder } from './components/AnchoredRegexBuilder';
 import {
   applyPrivateVocabulary,
+  formatPrivateVocabularyReplacementCount,
   loadPrivateVocabulary,
   parsePrivateVocabulary,
+  persistPrivateVocabulary,
   PRIVATE_VOCABULARY_MAX_BYTES,
-  PRIVATE_VOCABULARY_STORAGE_KEY,
   type PrivateVocabularyFile,
 } from './lib/private-vocabulary';
-import { evaluateSearch, type SearchOptions } from './lib/search';
+import { evaluateSearch, MAX_PATTERN_LENGTH, type SearchOptions } from './lib/search';
+import { hexToHsl, hslToHex, normalizeEditableHex } from './lib/color-editor';
 import { materialThemeCssVariables } from './lib/material-theme';
 import { applySetting, type FoundationSettings } from './lib/settings';
 
@@ -98,19 +101,72 @@ function formatBytes(value: number): string {
   return `${(value / 1024 ** 3).toFixed(1)} GB`;
 }
 
-function SearchBuilder({ options, onChange, copy, language }: { options: SearchOptions; onChange: (next: SearchOptions) => void; copy: CopyTransform; language: LanguageMode }) {
+function AccentColorEditor({ value, onChange, copy, language }: { value: string; onChange: (next: string) => void; copy: CopyTransform; language: LanguageMode }) {
+  const [query, setQuery] = useState('');
+  const [options, setOptions] = useState<SearchOptions>({ regex: false, caseSensitive: false, multiline: false });
+  const [draft, setDraft] = useState(value);
+  const hsl = useMemo(() => hexToHsl(value), [value]);
+  const sections = {
+    hex: evaluateSearch(query, copy('HEX direct color value custom entry'), options),
+    hsl: evaluateSearch(query, copy('Hue saturation lightness continuous HSL spectrum'), options),
+    preview: evaluateSearch(query, copy('Live accent color preview'), options),
+  };
+  const visibleCount = Object.values(sections).filter((result) => result.matched).length;
+  const searchError = Object.values(sections).find((result) => result.error)?.error ?? null;
+
+  useEffect(() => setDraft(value), [value]);
+
+  const updateHsl = (patch: Partial<typeof hsl>) => onChange(hslToHex({ ...hsl, ...patch }));
+
   return (
-    <details className="regex-builder">
-      <summary aria-label={copy('Open regular expression builder')}>.*</summary>
-      <div className="popover-surface" aria-label={copy('Regular expression builder')}>
-        <ActionIllustration id={ACTION_ILLUSTRATION_BINDINGS.surfaces.regexBuilder} language={language} copy={copy} variant="popover" />
-        <strong>{copy('Search mode')}</strong>
-        <label><input type="checkbox" checked={options.regex} onChange={(event) => onChange({ ...options, regex: event.target.checked })} /> {copy('Regular expression')}</label>
-        <label><input type="checkbox" checked={options.caseSensitive} onChange={(event) => onChange({ ...options, caseSensitive: event.target.checked })} /> {copy('Case sensitive')}</label>
-        <label><input type="checkbox" checked={options.multiline} disabled={!options.regex} onChange={(event) => onChange({ ...options, multiline: event.target.checked })} /> {copy('Multiline anchors')}</label>
-        <p>{copy('Literals, character classes, anchors, groups, alternation, and quantifiers use the JavaScript RegExp dialect. Evaluation is local and bounded.')}</p>
+    <section className="accent-color-editor" aria-label={copy('Accent color editor')}>
+      <div className="search-composite">
+        <input
+          type="search"
+          value={query}
+          maxLength={MAX_PATTERN_LENGTH}
+          aria-label={copy('Search accent color controls')}
+          aria-invalid={Boolean(searchError)}
+          placeholder={copy('Search color controls')}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+        <AnchoredRegexBuilder owner="accent-color-controls" searchLabel="Search accent color controls" query={query} onQueryChange={setQuery} options={options} onOptionsChange={setOptions} copy={copy} language={language} />
       </div>
-    </details>
+      <small aria-live="polite">{searchError ?? copy(`${visibleCount} color control sections`)}</small>
+      {sections.hex.matched && (
+        <label className="accent-color-editor__hex">
+          {copy('HEX color')}
+          <span className="field-row">
+            <span className="accent-color-editor__swatch" style={{ background: value }} aria-hidden="true" />
+            <input
+              type="text"
+              value={draft}
+              maxLength={7}
+              spellCheck={false}
+              aria-label={copy('HEX color value')}
+              aria-invalid={normalizeEditableHex(draft) === null}
+              onChange={(event) => {
+                const next = event.target.value;
+                setDraft(next);
+                const valid = normalizeEditableHex(next);
+                if (valid) onChange(valid);
+              }}
+            />
+          </span>
+          {normalizeEditableHex(draft) === null && <small role="alert">{copy('Use six hexadecimal digits, for example #6750a4.')}</small>}
+        </label>
+      )}
+      {sections.hsl.matched && (
+        <fieldset className="accent-color-editor__sliders">
+          <legend>{copy('Continuous HSL controls')}</legend>
+          <label>{copy('Hue')} <output>{hsl.hue}°</output><input type="range" min="0" max="359" value={hsl.hue} aria-label={copy('Hue')} onChange={(event) => updateHsl({ hue: Number(event.target.value) })} /></label>
+          <label>{copy('Saturation')} <output>{hsl.saturation}%</output><input type="range" min="0" max="100" value={hsl.saturation} aria-label={copy('Saturation')} onChange={(event) => updateHsl({ saturation: Number(event.target.value) })} /></label>
+          <label>{copy('Lightness')} <output>{hsl.lightness}%</output><input type="range" min="0" max="100" value={hsl.lightness} aria-label={copy('Lightness')} onChange={(event) => updateHsl({ lightness: Number(event.target.value) })} /></label>
+        </fieldset>
+      )}
+      {sections.preview.matched && <div className="accent-color-editor__preview" style={{ background: value }} aria-label={copy(`Live accent preview ${value}`)} />}
+      {visibleCount === 0 && !searchError && <p className="rail-empty">{copy('No color controls match this search.')}</p>}
+    </section>
   );
 }
 
@@ -199,10 +255,10 @@ function SettingsPage({
     input.value = '';
     if (!file) return;
     try {
-      if (file.size > PRIVATE_VOCABULARY_MAX_BYTES) throw new Error('The selected file is larger than 256 KiB.');
+      if (file.size > PRIVATE_VOCABULARY_MAX_BYTES) throw new Error('The selected file is larger than 64 KiB.');
       const next = parsePrivateVocabulary(await file.text());
       setVocabulary(next);
-      notify('Private vocabulary loaded', `${next.entries.length} replacements are active locally.`);
+      notify('Private vocabulary loaded', formatPrivateVocabularyReplacementCount(Object.keys(next.replacements).length));
     } catch (error) {
       notify('Private vocabulary was not loaded', error instanceof Error ? error.message : 'The selected file could not be validated.', 'error');
     }
@@ -236,7 +292,7 @@ function SettingsPage({
           <p>{copy('Theme, density, and accent apply live and persist on this device.')}</p>
           <div className="field-row"><button type="button" aria-pressed={settings.theme === 'light'} onClick={() => update('theme', 'light')}>{copy('Light')}</button><button type="button" aria-pressed={settings.theme === 'dark'} onClick={() => update('theme', 'dark')}>{copy('Dark')}</button></div>
           <div className="field-row"><button type="button" aria-pressed={settings.density === 'comfortable'} onClick={() => update('density', 'comfortable')}>{copy('Comfortable')}</button><button type="button" aria-pressed={settings.density === 'compact'} onClick={() => update('density', 'compact')}>{copy('Compact')}</button></div>
-          <label>{copy('Accent color')} <input type="color" value={settings.accent} aria-label={copy('Accent color')} onChange={(event) => update('accent', event.target.value)} /></label>
+          <AccentColorEditor value={settings.accent} onChange={(accent) => update('accent', accent)} copy={copy} language={settings.language} />
         </fieldset>
         <fieldset id="setting-dialog-emoji">
           <legend>{copy('Dialog decoration')}</legend>
@@ -250,9 +306,16 @@ function SettingsPage({
           <label>{copy('Choose private vocabulary JSON')}
             <input type="file" accept=".json,application/json" aria-describedby="private-vocabulary-help private-vocabulary-status" onChange={(event) => { void uploadVocabulary(event); }} />
           </label>
-          <small id="private-vocabulary-status">{copy(vocabulary ? `${vocabulary.entries.length} replacements are active locally.` : 'No private vocabulary is loaded; shipped wording is unchanged.')}</small>
+          <small id="private-vocabulary-status">{copy(vocabulary ? formatPrivateVocabularyReplacementCount(Object.keys(vocabulary.replacements).length) : 'No private vocabulary is loaded; shipped wording is unchanged.')}</small>
           <div className="field-row">
-            <button type="button" disabled={!vocabulary} aria-describedby={!vocabulary ? 'private-vocabulary-clear-reason' : undefined} onClick={() => { setVocabulary(null); notify('Private vocabulary cleared', 'Shipped wording is active again.'); }}>{copy('Clear local vocabulary')}</button>
+            <button type="button" disabled={!vocabulary} aria-describedby={!vocabulary ? 'private-vocabulary-clear-reason' : undefined} onClick={() => {
+              try {
+                setVocabulary(null);
+                notify('Private vocabulary cleared', 'Shipped wording is active again.');
+              } catch (error) {
+                notify('Private vocabulary was not cleared', error instanceof Error ? error.message : 'The local cache could not be cleared.', 'error');
+              }
+            }}>{copy('Clear local vocabulary')}</button>
           </div>
           {!vocabulary && <small id="private-vocabulary-clear-reason">{copy('Clear is unavailable because no private vocabulary is loaded.')}</small>}
         </fieldset>
@@ -280,7 +343,7 @@ function CommandPalette({ open, onClose, onNavigate, settings, copy }: { open: b
       <section className="command-palette" role="dialog" aria-modal="true" aria-labelledby="palette-title">
         <div className="palette-heading"><div><p className="eyebrow">Ctrl+Shift+F</p><h2 id="palette-title">{copy('Command palette')}</h2></div><button type="button" aria-label={copy('Close command palette')} onClick={onClose}>×</button></div>
         <ActionIllustration id={ACTION_ILLUSTRATION_BINDINGS.surfaces.commandPalette} language={settings.language} copy={copy} variant="dialog" loading="eager" />
-        <div className="search-composite"><input ref={inputRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={copy('Search every destination and setting')} aria-label={copy('Command palette search')} /><SearchBuilder options={options} onChange={setOptions} copy={copy} language={settings.language} /></div>
+        <div className="search-composite"><input ref={inputRef} type="search" value={query} maxLength={MAX_PATTERN_LENGTH} onChange={(event) => setQuery(event.target.value)} placeholder={copy('Search every destination and setting')} aria-label={copy('Command palette search')} /><AnchoredRegexBuilder owner="command-palette" searchLabel="Command palette search" query={query} onQueryChange={setQuery} options={options} onOptionsChange={setOptions} copy={copy} language={settings.language} /></div>
         <div className="command-results" role="listbox" aria-label={copy(`${commands.length} command results`)}>
           {commands.map((command) => <button type="button" role="option" key={command.id} onClick={() => { onNavigate(command.tab, command.target); onClose(); }}><strong>{command.label}</strong><span>{command.context}</span></button>)}
           {commands.length === 0 && <div className="empty-state">{copy('No commands match this search.')}</div>}
@@ -293,7 +356,7 @@ function CommandPalette({ open, onClose, onNavigate, settings, copy }: { open: b
 
 export function App() {
   const [settings, setSettings] = useState(loadSettings);
-  const [vocabulary, setVocabulary] = useState(loadPrivateVocabulary);
+  const [vocabulary, setVocabularyState] = useState(loadPrivateVocabulary);
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [summary, setSummary] = useState<SystemSummary | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -304,12 +367,12 @@ export function App() {
   const notify = useCallback((title: string, body: string, tone: NotificationItem['tone'] = 'info') => {
     setNotifications((items) => [...items, { id: Date.now() + items.length, title, body, tone }]);
   }, []);
+  const updateVocabulary = useCallback((next: PrivateVocabularyFile | null) => {
+    persistPrivateVocabulary(next);
+    setVocabularyState(next);
+  }, []);
 
   useEffect(() => { localStorage.setItem('material-tools.settings.v1', JSON.stringify(settings)); }, [settings]);
-  useEffect(() => {
-    if (vocabulary) localStorage.setItem(PRIVATE_VOCABULARY_STORAGE_KEY, JSON.stringify(vocabulary));
-    else localStorage.removeItem(PRIVATE_VOCABULARY_STORAGE_KEY);
-  }, [vocabulary]);
   useEffect(() => {
     window.materialTools.getSystemSummary().then(setSummary).catch((error: unknown) => {
       setNotifications([{ id: Date.now(), title: 'System summary failed', body: error instanceof Error ? error.message : 'The read-only system query did not return.', tone: 'error' }]);
@@ -344,7 +407,7 @@ export function App() {
       <div className="workspace">
         <aside className="tab-rail">
           <div className="rail-heading"><strong>{copy(settings.displayName)}</strong><button type="button" onClick={() => setPaletteOpen(true)} aria-label={copy('Open command palette')}>⌕</button></div>
-          <div className="search-composite rail-search"><input value={tabSearch} onChange={(event) => setTabSearch(event.target.value)} placeholder={copy('Search tabs')} aria-label={copy('Search current tab strip')} /><SearchBuilder options={searchOptions} onChange={setSearchOptions} copy={copy} language={settings.language} /></div>
+          <div className="search-composite rail-search"><input type="search" value={tabSearch} maxLength={MAX_PATTERN_LENGTH} onChange={(event) => setTabSearch(event.target.value)} placeholder={copy('Search tabs')} aria-label={copy('Search current tab strip')} /><AnchoredRegexBuilder owner="current-tab-strip" searchLabel="Search current tab strip" query={tabSearch} onQueryChange={setTabSearch} options={searchOptions} onOptionsChange={setSearchOptions} copy={copy} language={settings.language} /></div>
           <nav role="tablist" aria-orientation="vertical" aria-label={copy('Primary destinations')}>
             {visibleTabs.map((tab) => (
               <button type="button" role="tab" aria-selected={activeTab === tab.id} key={tab.id} onClick={() => setActiveTab(tab.id)}>
@@ -358,7 +421,7 @@ export function App() {
         </aside>
         <main id={`panel-${current.id}`} role="tabpanel" aria-label={copy(current.title)}>
           {activeTab === 'overview' && <Overview settings={settings} summary={summary} copy={copy} />}
-          {activeTab === 'settings' && <SettingsPage settings={settings} setSettings={setSettings} vocabulary={vocabulary} setVocabulary={setVocabulary} notify={notify} copy={copy} />}
+          {activeTab === 'settings' && <SettingsPage settings={settings} setSettings={setSettings} vocabulary={vocabulary} setVocabulary={updateVocabulary} notify={notify} copy={copy} />}
           {!['overview', 'settings'].includes(activeTab) && <CapabilityPage tab={current} settings={settings} copy={copy} />}
         </main>
       </div>

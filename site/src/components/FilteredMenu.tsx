@@ -1,6 +1,8 @@
 import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { matchesSearch } from '../regex';
-import type { SearchState } from '../types';
+import type { OverlayIllustrationSurface } from '../action-illustrations';
+import type { LanguageMode, SearchState } from '../types';
+import { ActionIllustration } from './ActionIllustration';
 import { SearchBox } from './SearchBox';
 
 export interface MenuAction {
@@ -18,14 +20,22 @@ interface FilteredMenuProps {
   onClose: () => void;
   className?: string;
   returnFocusId?: string;
+  illustrationSurface: OverlayIllustrationSurface;
+  language?: LanguageMode;
+  schoolMode?: boolean;
+  transform?: (text: string) => string;
 }
 
-export function FilteredMenu({ title, actions, onClose, className, returnFocusId }: FilteredMenuProps) {
+export function FilteredMenu({ title, actions, onClose, className, returnFocusId, illustrationSurface, language = 'en', schoolMode = false, transform = (text) => text }: FilteredMenuProps) {
   const [search, setSearch] = useState<SearchState>({ query: '', regex: false, flags: 'i' });
   const itemsRef = useRef<HTMLDivElement>(null);
   const visible = useMemo(
-    () => actions.filter((action) => matchesSearch(`${action.label} ${action.description ?? ''}`, search)),
-    [actions, search],
+    () => actions.filter((action) => {
+      const source = `${action.label} ${action.description ?? ''}`;
+      const transformed = transform(source);
+      return matchesSearch(transformed === source ? source : `${source} ${transformed}`, search);
+    }),
+    [actions, search, transform],
   );
 
   useEffect(() => () => {
@@ -54,7 +64,8 @@ export function FilteredMenu({ title, actions, onClose, className, returnFocusId
         <strong>{title}</strong>
         <button type="button" className="text-button" onClick={onClose}>Close</button>
       </header>
-      <SearchBox label={`${title} actions`} state={search} onChange={setSearch} resultCount={visible.length} compact autoFocus />
+      <ActionIllustration surface={illustrationSurface} language={language} schoolMode={schoolMode} variant="panel" />
+      <SearchBox label={`${title} actions`} state={search} onChange={setSearch} resultCount={visible.length} compact autoFocus language={language} schoolMode={schoolMode} />
       <div ref={itemsRef} className="filtered-menu__items" role="menu">
         {visible.length > 0 ? visible.map((action) => (
           <button
