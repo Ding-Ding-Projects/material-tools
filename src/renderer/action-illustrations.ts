@@ -1,10 +1,15 @@
 import commandPaletteImage from './assets/action-illustrations/command-palette.webp';
+import applicationsCatalogImage from './assets/action-illustrations/applications-catalog.webp';
 import configImage from './assets/action-illustrations/config.webp';
 import destructiveConfirmationImage from './assets/action-illustrations/destructive-confirmation.webp';
 import installImage from './assets/action-illustrations/install.webp';
 import microwinImage from './assets/action-illustrations/microwin.webp';
 import notificationsImage from './assets/action-illustrations/notifications.webp';
+import operationPlanImage from './assets/action-illustrations/operation-plan.webp';
+import operationProgressImage from './assets/action-illustrations/operation-progress.webp';
+import operationRecoveryImage from './assets/action-illustrations/operation-recovery.webp';
 import overviewImage from './assets/action-illustrations/overview.webp';
+import packageManagerReadinessImage from './assets/action-illustrations/package-manager-readiness.webp';
 import privateVocabularyImage from './assets/action-illustrations/private-vocabulary.webp';
 import regexBuilderImage from './assets/action-illustrations/regex-builder.webp';
 import settingsImage from './assets/action-illustrations/settings.webp';
@@ -26,6 +31,11 @@ export const IMPLEMENTED_SURFACE_ILLUSTRATION_IDS = [
   'regex-builder',
   'notifications',
   'private-vocabulary',
+  'applications-catalog',
+  'package-manager-readiness',
+  'operation-plan',
+  'operation-progress',
+  'operation-recovery',
 ] as const;
 
 export const DOCUMENTED_ILLUSTRATION_EXCEPTIONS = {
@@ -52,6 +62,11 @@ export const ACTION_ILLUSTRATION_BINDINGS = {
     regexBuilder: 'regex-builder',
     notifications: 'notifications',
     privateVocabulary: 'private-vocabulary',
+    applicationsCatalog: 'applications-catalog',
+    packageManagerReadiness: 'package-manager-readiness',
+    operationPlan: 'operation-plan',
+    operationProgress: 'operation-progress',
+    operationRecovery: 'operation-recovery',
   },
 } as const satisfies {
   featurePages: Record<FeaturePageIllustrationId, FeaturePageIllustrationId>;
@@ -142,6 +157,41 @@ export const ACTION_ILLUSTRATIONS: Readonly<Record<ActionIllustrationId, ActionI
     alt: {
       en: 'Tactile private vocabulary file transferring approved wording into a local-only store marked with a padlock',
       yue: '立體私人詞彙檔案，將核准字句傳送到有掛鎖標記嘅本機專用儲存區',
+    },
+  },
+  'applications-catalog': {
+    src: applicationsCatalogImage,
+    alt: {
+      en: 'Tactile application catalog cards arranged around category, source, and status filters',
+      yue: '立體應用程式目錄卡，圍繞分類、來源同狀態篩選器排列',
+    },
+  },
+  'package-manager-readiness': {
+    src: packageManagerReadinessImage,
+    alt: {
+      en: 'Tactile read-only package-manager detection scene showing verified and unavailable states',
+      yue: '立體唯讀套件管理器偵測場景，顯示已驗證同不可用狀態',
+    },
+  },
+  'operation-plan': {
+    src: operationPlanImage,
+    alt: {
+      en: 'Tactile selected applications flowing into a review plan without executing changes',
+      yue: '立體已選應用程式流入審核計劃，但未執行任何變更',
+    },
+  },
+  'operation-progress': {
+    src: operationProgressImage,
+    alt: {
+      en: 'Tactile operation timeline with measurable progress, cancellation, and verification stages',
+      yue: '立體操作時間線，包含可量度進度、取消同驗證階段',
+    },
+  },
+  'operation-recovery': {
+    src: operationRecoveryImage,
+    alt: {
+      en: 'Tactile recovery path returning a changed system state to its recorded baseline',
+      yue: '立體復原路徑，將已變更系統狀態還原到已記錄基準',
     },
   },
   'destructive-confirmation': {

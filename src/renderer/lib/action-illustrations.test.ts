@@ -14,13 +14,23 @@ import { ActionIllustration } from '../components/ActionIllustration';
 import regexBuilderSource from '../components/AnchoredRegexBuilder.tsx?raw';
 
 const REQUIRED_FEATURE_PAGES = ['overview', 'install', 'tweaks', 'config', 'updates', 'microwin', 'settings'] as const;
-const REQUIRED_IMPLEMENTED_SURFACES = ['command-palette', 'regex-builder', 'notifications', 'private-vocabulary'] as const;
+const REQUIRED_IMPLEMENTED_SURFACES = [
+  'command-palette',
+  'regex-builder',
+  'notifications',
+  'private-vocabulary',
+  'applications-catalog',
+  'package-manager-readiness',
+  'operation-plan',
+  'operation-progress',
+  'operation-recovery',
+] as const;
 
 describe('action illustration coverage', () => {
   it('keeps every current feature page and implemented transient surface on the hand-written inventory', () => {
     expect(FEATURE_PAGE_ILLUSTRATION_IDS).toEqual(REQUIRED_FEATURE_PAGES);
     expect(IMPLEMENTED_SURFACE_ILLUSTRATION_IDS).toEqual(REQUIRED_IMPLEMENTED_SURFACES);
-    expect(new Set([...FEATURE_PAGE_ILLUSTRATION_IDS, ...IMPLEMENTED_SURFACE_ILLUSTRATION_IDS]).size).toBe(11);
+    expect(new Set([...FEATURE_PAGE_ILLUSTRATION_IDS, ...IMPLEMENTED_SURFACE_ILLUSTRATION_IDS]).size).toBe(16);
   });
 
   it('provides a bundled WebP and meaningful bilingual alt text for every inventory entry', () => {
@@ -60,6 +70,11 @@ describe('action illustration coverage', () => {
       regexBuilder: 'regex-builder',
       notifications: 'notifications',
       privateVocabulary: 'private-vocabulary',
+      applicationsCatalog: 'applications-catalog',
+      packageManagerReadiness: 'package-manager-readiness',
+      operationPlan: 'operation-plan',
+      operationProgress: 'operation-progress',
+      operationRecovery: 'operation-recovery',
     });
 
     for (const binding of [
@@ -69,6 +84,11 @@ describe('action illustration coverage', () => {
       'ACTION_ILLUSTRATION_BINDINGS.surfaces.commandPalette}',
       'ACTION_ILLUSTRATION_BINDINGS.surfaces.notifications}',
       'ACTION_ILLUSTRATION_BINDINGS.surfaces.privateVocabulary}',
+      'ACTION_ILLUSTRATION_BINDINGS.surfaces.applicationsCatalog}',
+      'ACTION_ILLUSTRATION_BINDINGS.surfaces.packageManagerReadiness}',
+      'ACTION_ILLUSTRATION_BINDINGS.surfaces.operationPlan}',
+      'ACTION_ILLUSTRATION_BINDINGS.surfaces.operationProgress}',
+      'ACTION_ILLUSTRATION_BINDINGS.surfaces.operationRecovery}',
     ]) {
       expect(appSource).toContain(`<ActionIllustration id={${binding}`);
     }
@@ -79,5 +99,11 @@ describe('action illustration coverage', () => {
     expect(ACTION_ILLUSTRATIONS['destructive-confirmation'].src).toMatch(/\.webp(?:\?|$)/);
     expect(DOCUMENTED_ILLUSTRATION_EXCEPTIONS['destructive-confirmation']).toContain('not implemented');
     expect(DOCUMENTED_ILLUSTRATION_EXCEPTIONS['destructive-confirmation']).toContain('not rendered');
+  });
+
+  it('opens the anchored builder at its visible header instead of scrolling to a buried field', () => {
+    expect(regexBuilderSource).toContain('closeRef.current?.focus({ preventScroll: true })');
+    expect(regexBuilderSource).toContain('ref={closeRef}');
+    expect(regexBuilderSource).not.toContain('patternRef.current?.focus(');
   });
 });

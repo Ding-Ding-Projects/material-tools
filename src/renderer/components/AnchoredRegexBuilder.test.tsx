@@ -81,4 +81,5 @@ describe('AnchoredRegexBuilder component completeness', () => {
     expect(second).toContain('(second)+');
     expect(second).toContain('value="mu"');
   });
+
 });

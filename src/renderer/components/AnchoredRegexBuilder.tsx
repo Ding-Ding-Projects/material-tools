@@ -44,7 +44,7 @@ export function AnchoredRegexBuilder({
   const baseId = useId();
   const detailsRef = useRef<HTMLDetailsElement>(null);
   const summaryRef = useRef<HTMLElement>(null);
-  const patternRef = useRef<HTMLTextAreaElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
   const [flagsDraft, setFlagsDraft] = useState(() => flagsForSearchOptions(options));
   const [sample, setSample] = useState(DEFAULT_SAMPLE);
   const [literalDraft, setLiteralDraft] = useState('text');
@@ -106,7 +106,7 @@ export function AnchoredRegexBuilder({
       className="regex-builder"
       data-search-owner={owner}
       onToggle={(event) => {
-        if (event.currentTarget.open) window.requestAnimationFrame(() => patternRef.current?.focus());
+        if (event.currentTarget.open) window.requestAnimationFrame(() => closeRef.current?.focus({ preventScroll: true }));
       }}
       onKeyDown={(event) => {
         if (event.key === 'Escape' && event.currentTarget.open) {
@@ -119,7 +119,7 @@ export function AnchoredRegexBuilder({
       <section className="popover-surface regex-builder__surface" role="dialog" aria-labelledby={`${baseId}-title`}>
         <header className="regex-builder__header">
           <div><p className="eyebrow">{copy('JavaScript RegExp · Unicode')}</p><h3 id={`${baseId}-title`}>{copy(`Regular expression builder for ${searchLabel}`)}</h3></div>
-          <button type="button" className="icon-button" data-regex-control="close" aria-label={copy('Close regular expression builder')} onClick={closeBuilder}>×</button>
+          <button ref={closeRef} type="button" className="icon-button" data-regex-control="close" aria-label={copy('Close regular expression builder')} onClick={closeBuilder}>×</button>
         </header>
         <ActionIllustration id={ACTION_ILLUSTRATION_BINDINGS.surfaces.regexBuilder} language={language} copy={copy} variant="popover" />
 
@@ -151,7 +151,6 @@ export function AnchoredRegexBuilder({
           <legend>{copy('Raw pattern')}</legend>
           <label>{copy('JavaScript regular expression pattern')}
             <textarea
-              ref={patternRef}
               data-regex-control="raw-pattern"
               value={query}
               rows={3}

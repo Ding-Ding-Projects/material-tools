@@ -27,6 +27,7 @@ Adding a new implemented surface requires adding its identifier, local binding, 
 - A missing or extra binding fails the exact inventory test.
 - An article without a registered action image throws an explicit error instead of rendering an empty placeholder.
 - Narrow layouts use bounded widths, fixed aspect ratios, internal scrolling on overlays, and responsive stacking from 320 pixels upward.
+- The live-site capture harness forces deferred images to eager loading and refuses to photograph until every image has completed with non-zero natural dimensions, so blank lazy placeholders cannot enter the published evidence set.
 
 ## Security and privacy
 
@@ -34,4 +35,4 @@ All images are stored below `src/assets/action-illustrations`. The site does not
 
 ## Verification
 
-`src/action-illustrations.test.tsx` checks the exact hand-written inventories, local WebP bindings, article coverage, feature destinations, every implemented overlay/message surface, narrow mobile navigation, and localized alternatives. The normal site test and production-build commands also verify that the assets compile and are emitted with the static site.
+`src/action-illustrations.test.tsx` checks the exact hand-written inventories, local WebP bindings, article coverage, feature destinations, every implemented overlay/message surface, narrow mobile navigation, and localized alternatives. The shared capture-harness contract guards image readiness and the minimum-width installer action before photography. The normal site test and production-build commands also verify that the assets compile and are emitted with the static site.

@@ -5,7 +5,7 @@ import {
   type IllustrationLanguage,
 } from '../action-illustrations';
 
-type IllustrationVariant = 'feature' | 'dialog' | 'popover' | 'setting' | 'notification';
+type IllustrationVariant = 'feature' | 'card' | 'dialog' | 'popover' | 'setting' | 'notification';
 
 interface ActionIllustrationProps {
   id: ActionIllustrationId;

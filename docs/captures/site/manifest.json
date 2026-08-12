@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "product": "Material Tools documentation",
-  "deployedCommit": "bd2d1130a9720d675ad64accd5f42bdba34c9ffc",
-  "pagesRun": "31539893262",
+  "deployedCommit": "12341f51b1b10b19cb077134d4b7e12941235a79",
+  "pagesRun": "31549333063",
   "source": "https://ding-ding-projects.github.io/material-tools/",
   "captureMethod": "Live GitHub Pages deployment opened in Microsoft Edge on a hidden Win32 desktop with a fresh profile; Chrome DevTools Protocol Page.captureScreenshot",
   "privacyState": "No private vocabulary file was supplied; original wording remained active.",
@@ -11,106 +11,172 @@
       "file": "overview-light.png",
       "state": "Live documentation home, light theme, original wording",
       "width": 1425,
-      "height": 4641,
-      "bytes": 446189
+      "height": 2871,
+      "bytes": 246433,
+      "mobile": false,
+      "touch": false
     },
     {
       "file": "applications-article.png",
       "state": "Live Applications article",
-      "width": 1440,
-      "height": 1907,
-      "bytes": 153952
+      "width": 1425,
+      "height": 1206,
+      "bytes": 210749,
+      "mobile": false,
+      "touch": false
     },
     {
       "file": "tweaks-article.png",
       "state": "Live Tweaks article",
-      "width": 1440,
-      "height": 1141,
-      "bytes": 150419
+      "width": 1425,
+      "height": 1269,
+      "bytes": 224207,
+      "mobile": false,
+      "touch": false
     },
     {
       "file": "config-fixes-article.png",
       "state": "Live Config and Fixes article",
-      "width": 1440,
+      "width": 1425,
       "height": 1206,
-      "bytes": 153624
+      "bytes": 228141,
+      "mobile": false,
+      "touch": false
     },
     {
       "file": "updates-article.png",
       "state": "Live Updates article",
-      "width": 1440,
-      "height": 1141,
-      "bytes": 144197
+      "width": 1425,
+      "height": 1143,
+      "bytes": 238373,
+      "mobile": false,
+      "touch": false
     },
     {
       "file": "automation-article.png",
       "state": "Live Automation article",
-      "width": 1440,
-      "height": 1076,
-      "bytes": 131085
+      "width": 1425,
+      "height": 1052,
+      "bytes": 206788,
+      "mobile": false,
+      "touch": false
     },
     {
       "file": "win11-creator-article.png",
       "state": "Live Win11 Creator article",
-      "width": 1440,
-      "height": 1000,
-      "bytes": 135584
+      "width": 1425,
+      "height": 1269,
+      "bytes": 241203,
+      "mobile": false,
+      "touch": false
     },
     {
       "file": "settings-light.png",
       "state": "Live Settings page, light theme, original wording",
       "width": 1425,
-      "height": 4641,
-      "bytes": 494237
+      "height": 5015,
+      "bytes": 647882,
+      "mobile": false,
+      "touch": false
     },
     {
       "file": "private-vocabulary-unloaded.png",
       "state": "Live private-vocabulary upload in its unloaded, local-only state",
       "width": 1440,
       "height": 1000,
-      "bytes": 82547
+      "bytes": 218333,
+      "mobile": false,
+      "touch": false
     },
     {
       "file": "notifications.png",
       "state": "Live notification history page",
       "width": 1440,
       "height": 1000,
-      "bytes": 150758
+      "bytes": 165742,
+      "mobile": false,
+      "touch": false
     },
     {
       "file": "command-palette.png",
       "state": "Live command palette",
       "width": 1440,
       "height": 1000,
-      "bytes": 132574
+      "bytes": 200885,
+      "mobile": false,
+      "touch": false
     },
     {
       "file": "command-regex-builder.png",
       "state": "Live command palette with its anchored regular-expression builder",
       "width": 1440,
       "height": 1000,
-      "bytes": 133869
+      "bytes": 192724,
+      "mobile": false,
+      "touch": false
     },
     {
       "file": "tab-discovery.png",
       "state": "Live four-scope tab discovery surface",
       "width": 1440,
       "height": 1000,
-      "bytes": 103899
+      "bytes": 168471,
+      "mobile": false,
+      "touch": false
     },
     {
       "file": "tab-appearance-editor.png",
       "state": "Live per-tab appearance editor",
       "width": 1440,
       "height": 1000,
-      "bytes": 308506
+      "bytes": 236645,
+      "mobile": false,
+      "touch": false
     },
     {
       "file": "overview-narrow.png",
-      "state": "Live documentation home at a narrow touch layout",
+      "state": "Live documentation home at a 390 by 844 mobile touch layout",
       "width": 390,
       "height": 844,
-      "bytes": 110373
+      "bytes": 93381,
+      "mobile": true,
+      "touch": true
+    },
+    {
+      "file": "private-vocabulary-mobile.png",
+      "state": "Live M3 private-vocabulary bottom sheet at a 390 by 844 mobile touch layout",
+      "width": 390,
+      "height": 844,
+      "bytes": 134010,
+      "mobile": true,
+      "touch": true
+    },
+    {
+      "file": "mobile-navigation.png",
+      "state": "Live M3 mobile navigation drawer with touch emulation",
+      "width": 390,
+      "height": 844,
+      "bytes": 80915,
+      "mobile": true,
+      "touch": true
+    },
+    {
+      "file": "overview-compact.png",
+      "state": "Live documentation home at the minimum 320 by 568 mobile touch layout",
+      "width": 320,
+      "height": 568,
+      "bytes": 37512,
+      "mobile": true,
+      "touch": true
+    },
+    {
+      "file": "overview-landscape.png",
+      "state": "Live documentation home at an 844 by 390 landscape mobile touch layout",
+      "width": 844,
+      "height": 390,
+      "bytes": 40020,
+      "mobile": true,
+      "touch": true
     }
   ]
 }

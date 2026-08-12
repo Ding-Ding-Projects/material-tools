@@ -2,7 +2,7 @@
 
 Material Tools is a Windows Electron application being built to provide full behavioral parity with [Chris Titus Tech's WinUtil](https://github.com/ChrisTitusTech/winutil), wrapped in a secure Material Design 3 desktop experience.
 
-> **Current status:** verified foundation release. The application launches, reports a real read-only system summary, exposes a frameless Material shell with seed-derived tonal roles, persists core appearance and language settings, and includes a bounded regex search plus `Ctrl+Shift+F` command palette. Every current feature page and implemented dialog, popover, notification, and nested vocabulary surface carries its own local action illustration. The responsive documentation site is live. System-changing WinUtil operations remain deliberately unavailable until their preview, recovery, verification, and audit contracts are implemented.
+> **Current status:** verified desktop foundation plus an in-progress application-management candidate. The application launches, reports a real read-only system summary, exposes a frameless Material shell with seed-derived tonal roles, persists core appearance and language settings, and includes bounded regex search plus the `Ctrl+Shift+F` command palette. The desktop candidate renders all 227 pinned application entries and implements bounded readiness scans plus typed, explicitly confirmed, cancellable Install/Upgrade operations with installed-state verification. Uninstall and the Tweaks, Config, Updates, and MicroWin executors remain unavailable. The exact candidate commit and release are not claimed until the next packaged build and capture pass complete.
 
 ## Start here
 
@@ -10,7 +10,7 @@ Material Tools is a Windows Electron application being built to provide full beh
 - Build the unsigned Squirrel.Windows installer: `build-installer.bat`
 - Silent automation mode: `build.bat /s` or `build-installer.bat /s`
 - Live documentation: <https://ding-ding-projects.github.io/material-tools/>
-- Verified unsigned installer: [`build-0.1.0.16` for Windows x64](https://github.com/Ding-Ding-Projects/material-tools/releases/download/build-0.1.0.16/MaterialTools-Setup-0.1.0-x64.exe)
+- Latest verified unsigned installer: [`build-0.1.0.18` for Windows x64](https://github.com/Ding-Ding-Projects/material-tools/releases/download/build-0.1.0.18/MaterialTools-Setup-0.1.0-x64.exe)
 - Documentation: [docs/README.md](docs/README.md)
 - Interactive documentation site source: [site/README.md](site/README.md)
 - Delivery plan: [ROADMAP.md](ROADMAP.md)
@@ -32,9 +32,11 @@ The installer is intentionally unsigned and may trigger an unknown-publisher or 
 - Persisted application display name, theme, density, accent, and dialog-emoji setting.
 - Visible private-vocabulary upload and clear controls with bounded versioned validation, local-only caching, and unchanged shipped wording when no file is loaded.
 - Non-blocking error notifications.
-- Twelve bundled action illustrations with localized alternative text, explicit feature/surface coverage, and no runtime network fetch.
+- Seventeen bundled action illustrations with localized alternative text, explicit feature/surface coverage, and no runtime network fetch.
 - Material Design 3 tonal-role generation from the saved accent seed, including contrast checks for extreme seed colors.
 - A mobile documentation drawer and private-vocabulary bottom sheet verified at 320 px, 390 px, and short landscape touch layouts.
+- A generated 227-entry application catalog, explicit scoped WinGet/Chocolatey readiness scans, and grid/list review planning.
+- A sender-bound Install/Upgrade lifecycle with a one-use preview, explicit confirmation, per-item progress, cancellation, terminal results, and installed-state verification.
 
 </details>
 
@@ -66,7 +68,7 @@ Both root scripts are designed for a fresh Windows checkout. They check for a su
 <details>
 <summary>Capture matrix</summary>
 
-The desktop captures came from the real locally built unsigned Squirrel.Windows package at commit `bd2d1130a9720d675ad64accd5f42bdba34c9ffc`, which is the target of verified release `build-0.1.0.15`. A deterministic documentation fixture replaces device-specific facts; it is visibly labelled in the application. The site captures came from the live GitHub Pages deployment for the same commit, verified by workflow run `31539893262`. Every image below was opened and visually reviewed; no mockup, design export, user vocabulary payload, or hand-edited substitute is used.
+The committed desktop captures currently come from the real locally built unsigned Squirrel.Windows package at commit `bd2d1130a9720d675ad64accd5f42bdba34c9ffc`, which is the target of verified release `build-0.1.0.15`. The newer application-management images referenced below will replace the old evidence only after the candidate is committed, packaged, driven, and visually verified; until then, the links intentionally identify the expected evidence paths rather than claiming existing provenance. A deterministic documentation fixture replaces device-specific facts and is visibly labelled in the application. The site captures came from the live GitHub Pages deployment for the earlier verified commit, verified by workflow run `31539893262`. No mockup, design export, user vocabulary payload, or hand-edited substitute is accepted as release evidence.
 
 <details>
 <summary>Desktop overview, themes, and narrow layout</summary>
@@ -80,9 +82,24 @@ The desktop captures came from the real locally built unsigned Squirrel.Windows 
 </details>
 
 <details>
-<summary>Desktop parity destinations and honest unavailable states</summary>
+<summary>Desktop application catalog and operation lifecycle</summary>
 
-![Install destination showing its honest unavailable foundation state](docs/captures/foundation/install-unavailable.png)
+![Desktop application catalog with all 227 pinned entries](docs/captures/foundation/install-catalog.png)
+
+![Desktop application operation preview with explicit confirmation](docs/captures/foundation/install-preview.png)
+
+![Desktop application operation progress](docs/captures/foundation/install-progress.png)
+
+![Desktop application operation terminal result and verification action](docs/captures/foundation/install-result.png)
+
+![Desktop cancelled 25-item application operation](docs/captures/foundation/install-cancelled.png)
+
+![Desktop application catalog at a 390 by 844 touch layout](docs/captures/foundation/install-narrow.png)
+
+</details>
+
+<details>
+<summary>Desktop preview-only parity destinations</summary>
 
 ![Tweaks destination showing its honest unavailable foundation state](docs/captures/foundation/tweaks-unavailable.png)
 

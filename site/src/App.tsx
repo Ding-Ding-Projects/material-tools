@@ -52,9 +52,9 @@ function useMediaQuery(query: string) {
 
 const verifiedInstaller = {
   version: '0.1.0',
-  tag: 'build-0.1.0.16',
-  sha256: '4fe6f78b800a7ec3184df74afca06ba05d1acf6010fedc7ecfbd039a0da615a4',
-  url: 'https://github.com/Ding-Ding-Projects/material-tools/releases/download/build-0.1.0.16/MaterialTools-Setup-0.1.0-x64.exe',
+  tag: 'build-0.1.0.18',
+  sha256: 'b7cc69e61c7c6a9ea6cd089f517afd24f295d4f24b5d2af864588d2c14d0b6b3',
+  url: 'https://github.com/Ding-Ding-Projects/material-tools/releases/download/build-0.1.0.18/MaterialTools-Setup-0.1.0-x64.exe',
 };
 
 function localized(en: string, yue: string, preferences: Preferences) {
@@ -775,8 +775,10 @@ function OverviewPage({ preferences, state, narrowLayout, activateTab, editAppea
           <h1>{localized('Build a Windows setup you can explain', '砌一套講得明嘅 Windows 設定', preferences)}</h1>
           <p>{heroCopy(preferences)}</p>
           <div className="button-row">
-            <a className="filled-button link-button" href={verifiedInstaller.url} target="_blank" rel="noreferrer">
-              {localized('Download', '下載', preferences)} <span data-private-vocabulary-verbatim>{verifiedInstaller.version}</span> {localized('for Windows (x64)', 'Windows（x64）', preferences)}
+            <a className="filled-button link-button installer-download" href={verifiedInstaller.url} target="_blank" rel="noreferrer">
+              <span>{localized('Download', '下載', preferences)}</span>
+              <span data-private-vocabulary-verbatim>{verifiedInstaller.version}</span>
+              <span>{localized('for Windows (x64)', 'Windows（x64）', preferences)}</span>
             </a>
             <button className="tonal-button" type="button" onClick={() => activateTab('applications')}>Explore the workflow</button>
             <button className="text-button" type="button" onClick={() => activateTab('settings')}>Personalize this site</button>

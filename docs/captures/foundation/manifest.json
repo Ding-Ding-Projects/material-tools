@@ -1,94 +1,109 @@
 {
   "schemaVersion": 1,
   "product": "Material Tools",
-  "commit": "bd2d1130a9720d675ad64accd5f42bdba34c9ffc",
-  "releaseTag": "build-0.1.0.15",
+  "commit": "12341f51b1b10b19cb077134d4b7e12941235a79",
+  "releaseTag": "build-0.1.0.18",
   "source": "file:///C:/Users/Administrator/Documents/GitHub/material-tools/dist/win-unpacked/resources/app.asar/dist/renderer/index.html",
   "captureMethod": "Locally built unsigned Squirrel.Windows package from the stated commit, hidden Win32 desktop, deterministic non-device-specific fixture, Chrome DevTools Protocol Page.captureScreenshot",
+  "privacyState": "No user-supplied vocabulary was read. A bounded neutral in-memory document exercised the loaded notification, was cleared immediately, and left no cached value.",
   "captures": [
     {
       "file": "overview-dark.png",
       "state": "Overview, dark theme, English, deterministic non-device-specific documentation fixture",
-      "width": 1440,
-      "height": 1000,
-      "bytes": 64558
+      "width": 1425,
+      "height": 1145,
+      "bytes": 204807
     },
     {
       "file": "install-unavailable.png",
       "state": "Install destination with an honest unavailable state",
-      "width": 1440,
-      "height": 1000,
-      "bytes": 47744
+      "width": 1425,
+      "height": 1009,
+      "bytes": 199656
     },
     {
       "file": "tweaks-unavailable.png",
       "state": "Tweaks destination with an honest unavailable state",
-      "width": 1440,
-      "height": 1000,
-      "bytes": 49705
+      "width": 1425,
+      "height": 1009,
+      "bytes": 221230
     },
     {
       "file": "config-unavailable.png",
       "state": "Config destination with an honest unavailable state",
-      "width": 1440,
-      "height": 1000,
-      "bytes": 49686
+      "width": 1425,
+      "height": 1009,
+      "bytes": 227934
     },
     {
       "file": "updates-unavailable.png",
       "state": "Updates destination with an honest unavailable state",
-      "width": 1440,
-      "height": 1000,
-      "bytes": 49887
+      "width": 1425,
+      "height": 1009,
+      "bytes": 281993
     },
     {
       "file": "microwin-unavailable.png",
       "state": "MicroWin destination with an honest unavailable state",
-      "width": 1440,
-      "height": 1000,
-      "bytes": 51625
+      "width": 1425,
+      "height": 1009,
+      "bytes": 256907
     },
     {
       "file": "settings-dark.png",
       "state": "Settings, dark theme, all foundation controls",
       "width": 1425,
-      "height": 1615,
-      "bytes": 110367
+      "height": 2752,
+      "bytes": 467909
+    },
+    {
+      "file": "private-vocabulary-unloaded.png",
+      "state": "Private-vocabulary upload in its unloaded, local-only state",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 143018
+    },
+    {
+      "file": "private-vocabulary-notification.png",
+      "state": "Private-vocabulary success notification with its action illustration",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 154997
     },
     {
       "file": "command-palette.png",
       "state": "Command palette opened from the running application",
-      "width": 1425,
-      "height": 1615,
-      "bytes": 124761
+      "width": 1440,
+      "height": 1000,
+      "bytes": 127828
     },
     {
       "file": "regex-builder.png",
       "state": "Command-palette search with its anchored regular expression builder",
-      "width": 1425,
-      "height": 1615,
-      "bytes": 143816
+      "width": 1440,
+      "height": 1000,
+      "bytes": 79351
     },
     {
       "file": "settings-light-bilingual.png",
       "state": "Settings, light theme, bilingual mode",
       "width": 1425,
-      "height": 1615,
-      "bytes": 115101
+      "height": 2752,
+      "bytes": 473430
     },
     {
       "file": "overview-light-bilingual.png",
       "state": "Overview, light theme, bilingual mode",
-      "width": 1440,
-      "height": 1000,
-      "bytes": 82427
+      "width": 1425,
+      "height": 1207,
+      "bytes": 221935
     },
     {
       "file": "overview-narrow.png",
       "state": "Overview at a narrow touch layout",
       "width": 480,
       "height": 900,
-      "bytes": 31898
+      "bytes": 98963
     }
   ]
 }

@@ -45,8 +45,10 @@ describe('Material Tools Pages shell', () => {
   it('links the verified unsigned Windows installer from the home surface', () => {
     render(<App />);
     const download = screen.getByRole('link', { name: 'Download 0.1.0 for Windows (x64)' });
-    expect(download).toHaveAttribute('href', 'https://github.com/Ding-Ding-Projects/material-tools/releases/download/build-0.1.0.16/MaterialTools-Setup-0.1.0-x64.exe');
-    expect(screen.getByText(/Verified build-0\.1\.0\.16/)).toHaveTextContent('SHA-256 4fe6f78b800a7ec3184df74afca06ba05d1acf6010fedc7ecfbd039a0da615a4');
+    expect(download).toHaveAttribute('href', 'https://github.com/Ding-Ding-Projects/material-tools/releases/download/build-0.1.0.18/MaterialTools-Setup-0.1.0-x64.exe');
+    expect(download).toHaveClass('installer-download');
+    expect(download.querySelectorAll(':scope > span')).toHaveLength(3);
+    expect(screen.getByText(/Verified build-0\.1\.0\.18/)).toHaveTextContent('SHA-256 b7cc69e61c7c6a9ea6cd089f517afd24f295d4f24b5d2af864588d2c14d0b6b3');
   });
 
   it('opens the global command palette with Ctrl+Shift+F', () => {
@@ -311,7 +313,7 @@ describe('Material Tools Pages shell', () => {
     render(<App />);
 
     expect(screen.getByRole('link', { name: 'Download 0.1.0 for Windows (x64)' })).toBeInTheDocument();
-    expect(screen.getByText(/Verified build-0\.1\.0\.16/)).toHaveTextContent('SHA-256 4fe6f78b800a7ec3184df74afca06ba05d1acf6010fedc7ecfbd039a0da615a4');
+    expect(screen.getByText(/Verified build-0\.1\.0\.18/)).toHaveTextContent('SHA-256 b7cc69e61c7c6a9ea6cd089f517afd24f295d4f24b5d2af864588d2c14d0b6b3');
     fireEvent.click(screen.getByRole('tab', { name: 'Notifications' }));
     expect(screen.getByText('info')).toBeInTheDocument();
     expect(document.querySelector('time')).toHaveTextContent('2026');

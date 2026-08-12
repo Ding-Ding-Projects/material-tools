@@ -141,6 +141,58 @@ async function clickButtonText(text, label = text) {
   await delay(220);
 }
 
+async function assertMobileOverviewGeometry(label, expectCompactProof) {
+  const evidence = await evaluate(`(() => {
+    const action = document.querySelector('.installer-download');
+    const spans = [...(action?.querySelectorAll(':scope > span') ?? [])];
+    const compactProof = document.querySelector('.release-proof--compact');
+    const wideProof = document.querySelector('.hero-card p.release-proof:not(.release-proof--compact)');
+    const proof = ${expectCompactProof ? 'compactProof' : 'wideProof'};
+    const proofControl = ${expectCompactProof ? "compactProof?.querySelector(':scope > summary')" : 'wideProof'};
+    if (!(action instanceof HTMLElement) || spans.length !== 3 || !(proof instanceof HTMLElement) || !(proofControl instanceof HTMLElement)) {
+      return { ok: false, reason: 'required controls missing', spanCount: spans.length, compactProof: Boolean(compactProof), wideProof: Boolean(wideProof) };
+    }
+    const actionStyle = getComputedStyle(action);
+    const actionBounds = action.getBoundingClientRect();
+    const spanBounds = spans.map((span) => span.getBoundingClientRect());
+    const proofStyle = getComputedStyle(proofControl);
+    const proofBounds = proofControl.getBoundingClientRect();
+    const scrollContainer = document.querySelector('main');
+    const separated = spanBounds.slice(1).every((bounds, index) => {
+      const previous = spanBounds[index];
+      const sameLine = Math.abs(bounds.top - previous.top) <= 2;
+      return sameLine ? bounds.left - previous.right >= 0.5 : bounds.top >= previous.bottom - 1;
+    });
+    const labelText = spans.map((span) => span.textContent?.trim() ?? '').join(' ');
+    const proofReachable = proofBounds.left >= -1
+      && proofBounds.right <= innerWidth + 1
+      && proofBounds.height >= 48
+      && proofBounds.bottom + (scrollContainer?.scrollTop ?? scrollY) <= (scrollContainer?.scrollHeight ?? document.documentElement.scrollHeight) + 56;
+    const ok = labelText === 'Download 0.1.0 for Windows (x64)'
+      && Number.parseFloat(actionStyle.columnGap) > 0
+      && actionBounds.left >= -1
+      && actionBounds.right <= innerWidth + 1
+      && actionBounds.height >= 48
+      && spanBounds.every((bounds) => bounds.width > 0 && bounds.height > 0)
+      && separated
+      && proofStyle.display !== 'none'
+      && proofStyle.visibility === 'visible'
+      && Number(proofStyle.opacity) > 0
+      && proofReachable;
+    return {
+      ok,
+      labelText,
+      columnGap: actionStyle.columnGap,
+      action: { left: actionBounds.left, right: actionBounds.right, height: actionBounds.height },
+      spans: spanBounds.map((bounds) => ({ left: bounds.left, right: bounds.right, top: bounds.top, bottom: bounds.bottom })),
+      separated,
+      proof: { left: proofBounds.left, right: proofBounds.right, top: proofBounds.top, bottom: proofBounds.bottom, height: proofBounds.height },
+      proofReachable,
+    };
+  })()`);
+  if (!evidence?.ok) throw new Error(`${label} failed responsive geometry checks: ${JSON.stringify(evidence)}`);
+}
+
 const captures = [];
 async function capture(name, state, width = 1440, height = 1000, captureBeyondViewport = true, mobile = false, touch = false) {
   await send('Emulation.setDeviceMetricsOverride', {
@@ -159,6 +211,19 @@ async function capture(name, state, width = 1440, height = 1000, captureBeyondVi
   if (mobile) {
     await waitFor(`document.documentElement.scrollWidth <= innerWidth + 1
       && document.body.scrollWidth <= innerWidth + 1`, `${width} by ${height} mobile content without sideways overflow`);
+  }
+  await waitFor(`(() => {
+    const images = [...document.images];
+    images.forEach((image) => { image.loading = 'eager'; });
+    return images.every((image) => image.complete && image.naturalWidth > 0 && image.naturalHeight > 0);
+  })()`, `${name} image readiness`);
+  if (mobile && ['overview-narrow', 'overview-release-proof-mobile', 'overview-compact', 'overview-landscape'].includes(name)) {
+    const expectsCompactProof = width <= 760 || (height <= 500 && width <= 900);
+    const proofSelector = expectsCompactProof ? '.release-proof--compact > summary' : '.hero-card p.release-proof:not(.release-proof--compact)';
+    await waitFor(`Boolean(document.querySelector('.installer-download'))
+      && document.querySelectorAll('.installer-download > span').length === 3
+      && Boolean(document.querySelector(${JSON.stringify(proofSelector)}))`, `${name} responsive installer proof`);
+    await assertMobileOverviewGeometry(`${name} at ${width} by ${height}`, expectsCompactProof);
   }
   await delay(260);
   const result = await send('Page.captureScreenshot', { format: 'png', fromSurface: true, captureBeyondViewport });
@@ -236,9 +301,46 @@ await capture('tab-appearance-editor', 'Live per-tab appearance editor', 1440, 1
 await evaluate("document.querySelector('.appearance-editor button.text-button')?.click(); true");
 await delay(180);
 
-await click('#tab-overview', 'Overview tab');
+await send('Emulation.setDeviceMetricsOverride', {
+  width: 390,
+  height: 844,
+  screenWidth: 390,
+  screenHeight: 844,
+  deviceScaleFactor: 1,
+  mobile: true,
+  screenOrientation: { type: 'portraitPrimary', angle: 0 },
+});
+await send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+const mobileReloadOrigin = await evaluate('performance.timeOrigin');
+await send('Page.reload', { ignoreCache: true });
+await waitFor(`performance.timeOrigin > ${JSON.stringify(mobileReloadOrigin)}`, 'the new mobile document');
+await waitFor(`document.readyState === 'complete'
+  && Boolean(document.querySelector('.app-shell'))
+  && Boolean(document.querySelector('#tab-overview'))
+  && Boolean(document.querySelector('#panel-overview'))`, 'the reloaded mobile application shell');
 await waitFor("scrollY === 0 && (document.querySelector('main')?.scrollTop ?? 0) === 0", 'the mobile overview scroll origin');
 await capture('overview-narrow', 'Live documentation home at a 390 by 844 mobile touch layout', 390, 844, false, true, true);
+await evaluate("document.querySelector('.release-proof--compact')?.scrollIntoView({ block: 'center' }); true");
+await click('.release-proof--compact > summary', 'Compact verified-installer details');
+await waitFor(`(() => {
+  const details = document.querySelector('.release-proof--compact');
+  const summary = details?.querySelector(':scope > summary');
+  const body = details?.querySelector(':scope > p');
+  if (!(details instanceof HTMLDetailsElement) || !(summary instanceof HTMLElement) || !(body instanceof HTMLElement)) return false;
+  const summaryBounds = summary.getBoundingClientRect();
+  const bodyBounds = body.getBoundingClientRect();
+  return details.open
+    && summaryBounds.left >= -1
+    && summaryBounds.right <= innerWidth + 1
+    && summaryBounds.top >= -1
+    && bodyBounds.left >= -1
+    && bodyBounds.right <= innerWidth + 1
+    && bodyBounds.bottom <= innerHeight + 1;
+})()`, 'the opened in-viewport verified-installer details');
+await capture('overview-release-proof-mobile', 'Live verified unsigned-installer details opened at a 390 by 844 mobile touch layout', 390, 844, false, true, true);
+await click('.release-proof--compact > summary', 'Compact verified-installer details');
+await evaluate("document.querySelector('main')?.scrollTo({ top: 0 }); window.scrollTo({ top: 0 }); true");
+await waitFor("scrollY === 0 && (document.querySelector('main')?.scrollTop ?? 0) === 0", 'the restored mobile overview scroll origin');
 await click('.private-vocabulary-quick__trigger', 'Mobile private-vocabulary panel trigger');
 await waitFor(`(() => {
   const panel = document.querySelector('#private-vocabulary-quick-panel');

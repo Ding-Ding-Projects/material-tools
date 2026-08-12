@@ -7,6 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: write
 
 jobs:
@@ -21,12 +22,6 @@ jobs:
       CSC_LINK: ""
       CSC_KEY_PASSWORD: ""
     steps:
-      - name: Record workflow start
-        shell: pwsh
-        run: |
-          $started = (Get-Date).ToUniversalTime().ToString('o')
-          "WORKFLOW_STARTED=$started" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
       - name: Check out the release commit
         uses: actions/checkout@v7
         with:
@@ -97,6 +92,7 @@ jobs:
           retention-days: 14
 
       - name: Publish and verify one unique release
+        id: publish
         shell: pwsh
         run: |
           $setup = Get-ChildItem dist\squirrel-windows -Filter '*Setup*.exe' -File | Select-Object -First 1
@@ -105,10 +101,9 @@ jobs:
           if (-not $setup -or -not $package -or -not $releaseIndex) { throw 'Required Squirrel.Windows assets are missing.' }
           $setupHash = (Get-FileHash -Algorithm SHA256 $setup.FullName).Hash
           $packageHash = (Get-FileHash -Algorithm SHA256 $package.FullName).Hash
-          $lineCount = Get-Content -Raw line-count.md
 
           gh release create $env:RELEASE_TAG $setup.FullName $package.FullName $releaseIndex.FullName --target $env:GITHUB_SHA --title "Material Tools $env:RELEASE_VERSION · $env:RELEASE_DISH_NAME" --notes 'Release evidence is being finalized by this workflow.'
-          $release = gh release view $env:RELEASE_TAG --json tagName,targetCommitish,isDraft,isPrerelease,publishedAt,assets,url | ConvertFrom-Json
+          $release = gh release view $env:RELEASE_TAG --json tagName,targetCommitish,isDraft,isPrerelease,assets,url | ConvertFrom-Json
           if ($release.isDraft -or $release.isPrerelease) { throw 'Release was not published as a final non-draft release.' }
           if ($release.targetCommitish -ne $env:GITHUB_SHA) { throw 'Release target does not match the workflow commit.' }
           if ($release.assets.Count -ne 3) { throw "Expected 3 release assets, found $($release.assets.Count)." }
@@ -117,17 +112,57 @@ jobs:
           $downloadHash = (Get-FileHash -Algorithm SHA256 (Join-Path release-download $setup.Name)).Hash
           if ($downloadHash -ne $setupHash) { throw 'Downloaded installer hash does not match the built installer.' }
 
-          $run = gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID" | ConvertFrom-Json
-          $startedAt = [DateTimeOffset]::Parse($run.run_started_at).UtcDateTime
-          $publishedAt = [DateTimeOffset]::Parse($release.publishedAt).UtcDateTime
-          $duration = $publishedAt - $startedAt
+          "RELEASE_SETUP_NAME=$($setup.Name)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "RELEASE_SETUP_HASH=$setupHash" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "RELEASE_PACKAGE_NAME=$($package.Name)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "RELEASE_PACKAGE_HASH=$packageHash" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Finalize release notes with completed timing
+        shell: pwsh
+        run: |
+          $jobs = $null
+          $publicationStep = $null
+          for ($attempt = 1; $attempt -le 10; $attempt += 1) {
+            $payload = gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID/jobs?filter=latest&per_page=100" | ConvertFrom-Json
+            $jobs = @($payload.jobs)
+            $publicationSteps = @(
+              $jobs |
+                ForEach-Object { $_.steps } |
+                Where-Object { $_.name -eq 'Publish and verify one unique release' }
+            )
+            if ($publicationSteps.Count -eq 1 -and $publicationSteps[0].completed_at) {
+              $publicationStep = $publicationSteps[0]
+              break
+            }
+            Start-Sleep -Seconds 2
+          }
+          if (-not $jobs -or $jobs.Count -eq 0) { throw 'Actions jobs API returned no jobs for release timing.' }
+          if (-not $publicationStep) { throw 'The completed release publication step was not available from the Actions jobs API.' }
+          $firstJob = $jobs | Where-Object { $_.started_at } | Sort-Object { [DateTimeOffset]::Parse($_.started_at) } | Select-Object -First 1
+          if (-not $firstJob) { throw 'The first job start was not available from the Actions jobs API.' }
+
+          $startedAt = [DateTimeOffset]::Parse($firstJob.started_at).ToUniversalTime()
+          $completedAt = [DateTimeOffset]::Parse($publicationStep.completed_at).ToUniversalTime()
+          $duration = $completedAt - $startedAt
+          if ($duration.TotalSeconds -lt 0) { throw 'Release workflow timing completed before it started.' }
           $durationText = '{0:00}:{1:00}:{2:00}' -f [math]::Floor($duration.TotalHours), $duration.Minutes, $duration.Seconds
           $startedText = $startedAt.ToString('yyyy-MM-ddTHH:mm:ssZ')
-          $completedText = $publishedAt.ToString('yyyy-MM-ddTHH:mm:ssZ')
+          $completedText = $completedAt.ToString('yyyy-MM-ddTHH:mm:ssZ')
+          $lineCount = Get-Content -Raw line-count.md
+
+          $capturePaths = @(
+            'docs/captures/foundation/overview-light-bilingual.png',
+            'docs/captures/foundation/regex-builder.png',
+            'docs/captures/site/overview-narrow.png',
+            'docs/captures/site/private-vocabulary-unloaded.png'
+          )
+          $rawBase = "https://raw.githubusercontent.com/$env:GITHUB_REPOSITORY/$env:GITHUB_SHA"
+          $commitUrl = "https://github.com/$env:GITHUB_REPOSITORY/commit/$env:GITHUB_SHA"
+
           $template = @'
           # Material Tools __VERSION__
 
-          **Commit:** `__COMMIT__`
+          **Commit:** [`__COMMIT__`](__COMMIT_URL__)
 
           **Dim-sum code name:** [__DISH_NAME__](__DISH_URL__)
 
@@ -135,6 +170,25 @@ jobs:
 
           > [!WARNING]
           > The Windows installer and update packages are intentionally unsigned. Windows may show an unknown-publisher or SmartScreen warning. Verify the SHA-256 digest below before running the installer.
+
+          ## Interface summary
+
+          - The Windows desktop app and documentation site use Material Design 3 throughout, with responsive phone layouts on the site.
+          - Action-specific local illustrations accompany implemented feature cards and dialogs, including the private vocabulary upload and guided regex builder.
+
+          <details><summary>Open repository interface captures</summary>
+
+          These captures are loaded from the release commit linked above.
+
+          ![Material Tools desktop overview in bilingual light mode](__RAW_BASE__/docs/captures/foundation/overview-light-bilingual.png)
+
+          ![Material Tools guided regex builder](__RAW_BASE__/docs/captures/foundation/regex-builder.png)
+
+          ![Material Tools documentation at a narrow phone width](__RAW_BASE__/docs/captures/site/overview-narrow.png)
+
+          ![Material Tools private-vocabulary upload in its unloaded state](__RAW_BASE__/docs/captures/site/private-vocabulary-unloaded.png)
+
+          </details>
 
           ## Assets
 
@@ -165,13 +219,15 @@ jobs:
           '@
           $notes = $template.Replace('__VERSION__', $env:RELEASE_VERSION)
           $notes = $notes.Replace('__COMMIT__', $env:GITHUB_SHA)
+          $notes = $notes.Replace('__COMMIT_URL__', $commitUrl)
           $notes = $notes.Replace('__DISH_NAME__', $env:RELEASE_DISH_NAME)
           $notes = $notes.Replace('__DISH_URL__', $env:RELEASE_DISH_URL)
           $notes = $notes.Replace('__DISH_FILE__', $env:RELEASE_DISH_FILE)
-          $notes = $notes.Replace('__SETUP_NAME__', $setup.Name)
-          $notes = $notes.Replace('__SETUP_HASH__', $setupHash)
-          $notes = $notes.Replace('__PACKAGE_NAME__', $package.Name)
-          $notes = $notes.Replace('__PACKAGE_HASH__', $packageHash)
+          $notes = $notes.Replace('__RAW_BASE__', $rawBase)
+          $notes = $notes.Replace('__SETUP_NAME__', $env:RELEASE_SETUP_NAME)
+          $notes = $notes.Replace('__SETUP_HASH__', $env:RELEASE_SETUP_HASH)
+          $notes = $notes.Replace('__PACKAGE_NAME__', $env:RELEASE_PACKAGE_NAME)
+          $notes = $notes.Replace('__PACKAGE_HASH__', $env:RELEASE_PACKAGE_HASH)
           $notes = $notes.Replace('__RUNNER_NAME__', $env:RUNNER_NAME)
           $notes = $notes.Replace('__RUNNER_OS__', $env:RUNNER_OS)
           $notes = $notes.Replace('__RUNNER_ARCH__', $env:RUNNER_ARCH)
@@ -183,10 +239,10 @@ jobs:
           gh release edit $env:RELEASE_TAG --notes-file release-notes.md
 
           $published = gh release view $env:RELEASE_TAG --json body | ConvertFrom-Json
-          $unresolved = @('__VERSION__', '__COMMIT__', '__DISH_NAME__', '__DISH_URL__', '__DISH_FILE__', '__SETUP_NAME__', '__SETUP_HASH__', '__PACKAGE_NAME__', '__PACKAGE_HASH__', '__RUNNER_NAME__', '__RUNNER_OS__', '__RUNNER_ARCH__', '__STARTED__', '__COMPLETED__', '__DURATION__', '__LINE_COUNT__', '$env:', '$setupHash', '$packageHash')
+          $unresolved = @('__VERSION__', '__COMMIT__', '__COMMIT_URL__', '__DISH_NAME__', '__DISH_URL__', '__DISH_FILE__', '__RAW_BASE__', '__SETUP_NAME__', '__SETUP_HASH__', '__PACKAGE_NAME__', '__PACKAGE_HASH__', '__RUNNER_NAME__', '__RUNNER_OS__', '__RUNNER_ARCH__', '__STARTED__', '__COMPLETED__', '__DURATION__', '__LINE_COUNT__', '$env:', '$setupHash', '$packageHash')
           foreach ($marker in $unresolved) {
             if ($published.body.Contains($marker)) { throw "Release notes contain unresolved marker: $marker" }
           }
-          foreach ($value in @($setup.Name, $package.Name, $setupHash, $packageHash, $startedText, $completedText, $durationText, $env:RELEASE_DISH_FILE)) {
+          foreach ($value in @($env:RELEASE_SETUP_NAME, $env:RELEASE_PACKAGE_NAME, $env:RELEASE_SETUP_HASH, $env:RELEASE_PACKAGE_HASH, $startedText, $completedText, $durationText, $env:RELEASE_DISH_FILE, $rawBase, $commitUrl) + $capturePaths) {
             if (-not $published.body.Contains($value)) { throw "Release notes are missing evidence: $value" }
           }

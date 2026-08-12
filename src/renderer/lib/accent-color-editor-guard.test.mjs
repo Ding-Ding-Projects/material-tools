@@ -18,9 +18,12 @@ describe('accent color editor completeness', () => {
 
   it('binds every hand-written search owner to its own adjacent full builder', () => {
     const expectedOwners = new Map([
-      ['accent-color-controls', { query: 'query', options: 'options' }],
-      ['command-palette', { query: 'query', options: 'options' }],
-      ['current-tab-strip', { query: 'tabSearch', options: 'searchOptions' }],
+      ['accent-color-controls', { query: 'query', onQueryChange: 'setQuery', options: 'options', onOptionsChange: 'setOptions' }],
+      ['application-catalog', { query: 'query', onQueryChange: 'setQuery', options: 'options', onOptionsChange: 'setOptions' }],
+      ['settings-surface', { query: 'settingsQuery', onQueryChange: 'setSettingsQuery', options: 'settingsSearchOptions', onOptionsChange: 'setSettingsSearchOptions' }],
+      ['command-palette', { query: 'query', onQueryChange: 'setQuery', options: 'options', onOptionsChange: 'setOptions' }],
+      ['notification-center', { query: 'query', onQueryChange: 'setQuery', options: 'options', onOptionsChange: 'setOptions' }],
+      ['current-tab-strip', { query: 'tabSearch', onQueryChange: 'setTabSearch', options: 'searchOptions', onOptionsChange: 'setSearchOptions' }],
     ]);
     const builders = [...APP_SOURCE.matchAll(/<AnchoredRegexBuilder\b[\s\S]*?\/>/gu)];
     expect(builders).toHaveLength(expectedOwners.size);
@@ -31,9 +34,9 @@ describe('accent color editor completeness', () => {
       const expected = expectedOwners.get(owner);
       expect(expected, `Unexpected regular expression builder owner: ${String(owner)}`).toBeDefined();
       expect(attributes.get('query')).toBe(expected.query);
-      expect(attributes.get('onQueryChange')).toBe(expected.query === 'query' ? 'setQuery' : 'setTabSearch');
+      expect(attributes.get('onQueryChange')).toBe(expected.onQueryChange);
       expect(attributes.get('options')).toBe(expected.options);
-      expect(attributes.get('onOptionsChange')).toBe(expected.options === 'options' ? 'setOptions' : 'setSearchOptions');
+      expect(attributes.get('onOptionsChange')).toBe(expected.onOptionsChange);
       expect(attributes.has('searchLabel')).toBe(true);
       expect(attributes.get('copy')).toBe('copy');
       expect(attributes.has('language')).toBe(true);

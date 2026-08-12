@@ -170,6 +170,7 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 .mobile-nav-toggle__glyph::before { inset-block-start: -6px; }
 .mobile-nav-toggle__glyph::after { inset-block-start: 6px; }
 .link-button { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.installer-download { column-gap: 0.35ch; row-gap: 0; flex-wrap: wrap; text-align: center; }
 kbd { border: 1px solid var(--md-sys-color-outline-variant); border-radius: 6px; padding: 0.12rem 0.35rem; background: var(--md-sys-color-surface-container); font-size: 0.75rem; white-space: nowrap; }
 
 .tab-rail {

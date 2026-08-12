@@ -105,8 +105,20 @@ async function clickTab(label) {
 }
 
 const captures = [];
-async function capture(name, state, width = 1440, height = 1000, captureBeyondViewport = true) {
-  await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
+async function capture(name, state, width = 1440, height = 1000, captureBeyondViewport = true, mobile = false) {
+  await send('Emulation.setDeviceMetricsOverride', {
+    width,
+    height,
+    deviceScaleFactor: 1,
+    mobile,
+    ...(mobile ? { screenWidth: width, screenHeight: height } : {}),
+  });
+  await send('Emulation.setTouchEmulationEnabled', { enabled: mobile, maxTouchPoints: mobile ? 5 : 1 });
+  await waitFor(`(() => {
+    const images = [...document.images];
+    images.forEach((image) => { image.loading = 'eager'; });
+    return images.every((image) => image.complete && image.naturalWidth > 0 && image.naturalHeight > 0);
+  })()`, `${name} image readiness`);
   await delay(180);
   const result = await send('Page.captureScreenshot', { format: 'png', fromSurface: true, captureBeyondViewport });
   const bytes = Buffer.from(result.data, 'base64');
@@ -125,13 +137,131 @@ const vocabularyCacheIsEmpty = await evaluate("localStorage.getItem('material-to
 if (!vocabularyCacheIsEmpty) {
   throw new Error('Capture refused: the selected profile already contains a private-vocabulary cache. Use a fresh disposable profile.');
 }
+await send('Page.reload', { ignoreCache: true });
+await waitFor("document.readyState === 'complete' && Boolean(document.querySelector('.app-shell'))", 'the freshly reloaded application shell');
 await waitFor("Boolean(document.querySelector('.fact-grid'))", 'the system summary');
 await waitFor("document.querySelector('.status-chip')?.textContent?.trim() === 'Fixture'", 'the privacy-safe documentation fixture');
 
 await capture('overview-dark', 'Overview, dark theme, English, deterministic non-device-specific documentation fixture');
 
+await clickTab('Install');
+await waitFor("document.querySelectorAll('.application-card').length === 36", 'the first application-catalog page');
+await waitFor("document.body.innerText.includes('startup does not scan automatically')", 'the explicit no-startup-scan state');
+await capture('install-catalog', 'Interactive 227-entry application catalog before any package-manager scan', 1440, 1100, false);
+
+const catalogFiltered = await evaluate(`(() => {
+  const input = document.querySelector('input[aria-label="Search application catalog"]');
+  if (!(input instanceof HTMLInputElement)) return false;
+  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+  if (!setter) return false;
+  setter.call(input, 'VLC');
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+  return true;
+})()`);
+if (!catalogFiltered) throw new Error('The application-catalog search field was not available.');
+await waitFor("document.querySelectorAll('.application-card').length >= 1 && [...document.querySelectorAll('.application-card h3')].some((item) => item.textContent?.includes('VLC'))", 'the VLC plain-text catalog result');
+const catalogItemSelected = await evaluate(`(() => {
+  const button = [...document.querySelectorAll('.application-card button')]
+    .find((item) => item.textContent?.includes('Add to review plan'));
+  button?.click();
+  return Boolean(button);
+})()`);
+if (!catalogItemSelected) throw new Error('The catalog review-plan action was not available.');
+await waitFor("document.querySelector('#review-plan-title')?.textContent?.includes('1 applications')", 'the one-item review plan');
+
+const readinessStarted = await evaluate(`(() => {
+  const button = [...document.querySelectorAll('.manager-section button')]
+    .find((item) => item.textContent?.includes('Scan 1 selected'));
+  button?.click();
+  return Boolean(button);
+})()`);
+if (!readinessStarted) throw new Error('The selected-item readiness scan was not available.');
+await waitFor("document.querySelector('.manager-section')?.textContent?.includes('1 detected states retained')", 'the selected-item readiness result');
+
+const previewStarted = await evaluate(`(() => {
+  const button = [...document.querySelectorAll('.operation-workspace button')]
+    .find((item) => item.textContent?.includes('Preview install for 1'));
+  button?.click();
+  return Boolean(button);
+})()`);
+if (!previewStarted) throw new Error('The application-operation preview action was not available.');
+await waitFor("document.querySelector('.operation-preview')?.textContent?.includes('1 ready')", 'the ready application-operation preview');
+await waitFor("document.querySelector('.operation-workspace')?.textContent?.includes('No package-manager command runs in this capture')", 'the fixture simulation disclosure');
+
+const upgradeClicked = await evaluate(`(() => {
+  const button = [...document.querySelectorAll('.operation-action-row [role="radio"]')]
+    .find((item) => item.textContent?.trim() === 'Upgrade');
+  button?.click();
+  return Boolean(button);
+})()`);
+if (!upgradeClicked) throw new Error('The upgrade action was not available for stale-preview verification.');
+await waitFor("document.querySelector('.operation-preview button') instanceof HTMLButtonElement && document.querySelector('.operation-preview button').disabled && document.querySelector('.operation-preview')?.textContent?.includes('selection or action changed')", 'the stale preview after an action change');
+await evaluate(`(() => {
+  const button = [...document.querySelectorAll('.operation-action-row [role="radio"]')]
+    .find((item) => item.textContent?.trim() === 'Install');
+  button?.click();
+  return Boolean(button);
+})()`);
+await waitFor("document.querySelector('.operation-preview button') instanceof HTMLButtonElement && !document.querySelector('.operation-preview button').disabled", 'the restored matching preview action');
+await evaluate("document.querySelector('.operation-preview')?.scrollIntoView({ block: 'start' }); true");
+await capture('install-preview', 'Selected VLC operation preview with explicit confirmation and fixture disclosure', 1440, 1100, false);
+
+const operationStarted = await evaluate(`(() => {
+  const button = [...document.querySelectorAll('.operation-preview button')]
+    .find((item) => item.textContent?.includes('Confirm and install 1'));
+  button?.click();
+  return Boolean(button);
+})()`);
+if (!operationStarted) throw new Error('The explicit application-operation confirmation was not available.');
+await waitFor("Boolean(document.querySelector('.operation-progress'))", 'the application-operation progress surface');
+await evaluate("document.querySelector('.operation-progress')?.scrollIntoView({ block: 'start' }); true");
+await capture('install-progress', 'Application-operation progress with per-item state and action illustration', 1440, 1100, false);
+await waitFor("document.querySelector('.operation-result')?.textContent?.includes('1 succeeded')", 'the fixture application-operation result');
+await waitFor("document.querySelector('.operation-result')?.textContent?.includes('no package-manager command ran')", 'the result fixture disclosure');
+await evaluate("document.querySelector('.operation-result')?.scrollIntoView({ block: 'start' }); true");
+await capture('install-result', 'Completed fixture result with independent verification action and no-command disclosure', 1440, 1100, false);
+
+await send('Page.reload', { ignoreCache: true });
+await waitFor("document.readyState === 'complete' && Boolean(document.querySelector('.app-shell'))", 'the reloaded application before cancellation verification');
+await clickTab('Install');
+await waitFor("document.querySelectorAll('.application-card').length === 36", 'the catalog before cancellation verification');
+const cancellationPlanSelected = await evaluate(`(() => {
+  const button = [...document.querySelectorAll('.catalog-actions button')]
+    .find((item) => item.textContent?.includes('Select up to 25 matches'));
+  button?.click();
+  return Boolean(button);
+})()`);
+if (!cancellationPlanSelected) throw new Error('The 25-item selection action was not available.');
+await waitFor("document.querySelector('#review-plan-title')?.textContent?.includes('25 applications')", 'the 25-item cancellation plan');
+const cancellationPreviewStarted = await evaluate(`(() => {
+  const button = [...document.querySelectorAll('.operation-workspace button')]
+    .find((item) => item.textContent?.includes('Preview install for 25'));
+  button?.click();
+  return Boolean(button);
+})()`);
+if (!cancellationPreviewStarted) throw new Error('The 25-item cancellation preview action was not available.');
+await waitFor("Boolean(document.querySelector('.operation-preview'))", 'the 25-item cancellation preview');
+const cancellationOperationStarted = await evaluate(`(() => {
+  const button = [...document.querySelectorAll('.operation-preview button')]
+    .find((item) => item.textContent?.includes('Confirm and install'));
+  button?.click();
+  return Boolean(button);
+})()`);
+if (!cancellationOperationStarted) throw new Error('The cancellation operation confirmation was not available.');
+await waitFor("[...document.querySelectorAll('.operation-progress button')].some((item) => item.textContent?.includes('Cancel operation'))", 'the in-place cancellation action');
+await evaluate(`(() => {
+  const button = [...document.querySelectorAll('.operation-progress button')]
+    .find((item) => item.textContent?.includes('Cancel operation'));
+  button?.click();
+  return Boolean(button);
+})()`);
+await waitFor("document.querySelector('.operation-result')?.textContent?.includes('25 cancelled')", 'the 25-item cancelled result');
+await waitFor("![...document.querySelectorAll('.operation-progress button')].some((item) => item.textContent?.includes('Cancel operation'))", 'the terminal cancellation state');
+await evaluate("document.querySelector('.operation-result')?.scrollIntoView({ block: 'start' }); true");
+await capture('install-cancelled', 'Cancelled 25-item fixture operation with terminal per-item results', 1440, 1100, false);
+
 for (const [tab, file] of [
-  ['Install', 'install-unavailable'],
   ['Tweaks', 'tweaks-unavailable'],
   ['Config', 'config-unavailable'],
   ['Updates', 'updates-unavailable'],
@@ -147,6 +277,8 @@ await capture('settings-dark', 'Settings, dark theme, all foundation controls', 
 await evaluate("document.querySelector('#setting-private-vocabulary')?.scrollIntoView({ block: 'start' }); true");
 await delay(180);
 await capture('private-vocabulary-unloaded', 'Private-vocabulary upload in its unloaded, local-only state', 1440, 1000, false);
+await evaluate("document.querySelectorAll('.toast button').forEach((button) => button.click()); true");
+await waitFor("document.querySelectorAll('.toast').length === 0", 'the cleared transient notification stack before the vocabulary fixture');
 
 let fixtureClearVerified = false;
 try {
@@ -168,7 +300,8 @@ try {
   })()`);
   if (!fixtureUploaded) throw new Error('The private-vocabulary file input was not available for the bounded capture fixture.');
   await waitFor(`(() => {
-    const toast = document.querySelector('.toast');
+    const toast = [...document.querySelectorAll('.toast')]
+      .find((item) => item.textContent?.includes('Private vocabulary loaded'));
     const illustration = toast?.querySelector('.action-illustration img');
     return toast?.textContent?.includes('Private vocabulary loaded')
       && illustration instanceof HTMLImageElement
@@ -254,7 +387,21 @@ await evaluate(`(() => {
   return true;
 })()`);
 await waitFor("scrollY === 0 && (document.querySelector('main')?.scrollTop ?? 0) === 0", 'the narrow-layout scroll origin');
-await capture('overview-narrow', 'Overview at a narrow touch layout', 480, 900, false);
+await capture('overview-narrow', 'Overview at a 390 by 844 narrow touch layout', 390, 844, false, true);
+
+await clickTab('Install');
+await waitFor("document.querySelectorAll('.application-card').length === 36", 'the narrow application catalog');
+const narrowGeometry = await evaluate(`({
+  bodyOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  openRegexBuilders: document.querySelectorAll('.regex-builder[open]').length,
+  shortTargets: [...document.querySelectorAll('button')]
+    .filter((element) => element.getClientRects().length > 0 && element.getBoundingClientRect().height < 48)
+    .map((element) => element.textContent?.trim() || element.getAttribute('aria-label')),
+})`);
+if (narrowGeometry.bodyOverflow) throw new Error('The narrow Install layout has sideways document overflow.');
+if (narrowGeometry.openRegexBuilders !== 0) throw new Error('A regular-expression builder opened without user action in the narrow Install layout.');
+if (narrowGeometry.shortTargets.length > 0) throw new Error(`The narrow Install layout has controls below 48px: ${narrowGeometry.shortTargets.join(', ')}`);
+await capture('install-narrow', 'Install catalog at a 390 by 844 mobile touch layout', 390, 844, false, true);
 
 await send('Emulation.clearDeviceMetricsOverride');
 socket.close();
@@ -265,7 +412,7 @@ writeFileSync(resolve(outputDirectory, 'manifest.json'), `${JSON.stringify({
   commit,
   releaseTag,
   source: page.url,
-  captureMethod: 'Locally built unsigned Squirrel.Windows package from the stated commit, hidden Win32 desktop, deterministic non-device-specific fixture, Chrome DevTools Protocol Page.captureScreenshot',
+  captureMethod: 'Locally built unsigned Squirrel.Windows package from the stated commit, hidden Win32 desktop, deterministic non-device-specific fixture, Chrome DevTools Protocol Page.captureScreenshot, and mobile touch emulation for 390 by 844 captures',
   privacyState: 'No user-supplied vocabulary was read. A bounded neutral in-memory document exercised the loaded notification, was cleared immediately, and left no cached value.',
   captures,
 }, null, 2)}\n`);

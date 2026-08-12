@@ -14,10 +14,11 @@
 
 ## 0.2 — application management parity
 
-- [ ] Pin and validate all 227 upstream application entries.
-- [ ] Detect WinGet, Chocolatey, installed package state, and available updates.
-- [ ] Plan, confirm, install, uninstall, upgrade selected, and upgrade all.
-- [ ] Stream progress, support cancellation, verify postconditions, and export logs.
+- [x] Pin and validate all 227 upstream application entries.
+- [x] Detect WinGet, Chocolatey, and installed package state for a bounded explicit scope.
+- [x] Plan, confirm, install, and upgrade selected applications through the typed allowlisted operation bridge.
+- [x] Stream progress, support cancellation, preserve partial results, and verify installed-state postconditions.
+- [ ] Detect available upgrades, implement uninstall and upgrade-all, and export redacted operation logs.
 
 ## 0.3 — tweaks, AppX, configuration, DNS, and updates
 

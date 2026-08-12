@@ -7,6 +7,8 @@
 ## Features
 
 - [Foundation shell](features/foundation-shell.md)
+- [Application management](features/application-management.md)
+- [Action illustrations](features/action-illustrations.md)
 - [Private vocabulary upload](features/private-vocabulary.md)
 - [WinUtil parity contract](features/winutil-parity.md)
 
