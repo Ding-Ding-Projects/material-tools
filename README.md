@@ -6,6 +6,8 @@ Material Tools is a Windows Electron application being built to provide full beh
 
 ## Start here
 
+The current source candidate also isolates synchronous progress-delivery failures from operation results and lifecycle cleanup, with seven synthetic regressions. Standard `npm test` and `npm run check` discover main-process security suites alongside renderer tests. Upgrade now requires installed evidence from the selected manager at preview and execution, with a fixed Chocolatey no-install guard and selected-manager postverification. These are source-only checks; native Windows acceptance, full-product parity, and refreshed packaged captures remain unverified. See [test discovery](docs/architecture/test-discovery.md) for the baseline and negative-test evidence, and [the handoff](HANDOFF.md) for current verification and the three remaining backend risks.
+
 - Build the runnable application: `build.bat`
 - Build the unsigned Squirrel.Windows installer: `build-installer.bat`
 - Silent automation mode: `build.bat /s` or `build-installer.bat /s`

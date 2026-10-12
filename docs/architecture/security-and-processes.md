@@ -14,6 +14,8 @@ Capability queries accept at most 64 generated catalog keys and use four-second,
 
 ## Failure modes
 
+- Upgrade eligibility and postverification are manager-specific. Every package identifier for the current application must pass installed-state preflight before its first mutation; an unavailable preview stays unavailable until replaced. Chocolatey Upgrade always uses `--fail-on-not-installed` and rejects pre-v2 or unrecognized manager versions before querying installed state. This is source-tested scope protection, not native Windows acceptance or proof of descendant-process containment.
+- Synchronous progress-delivery exceptions are contained without logging the exception or payload. Delivery remains best-effort; a disconnected renderer may miss notifications, but notification failures do not alter item outcomes or prevent lifecycle cleanup. This does not prove native window-close behavior or descendant-process containment.
 - A read-only system query can fail or time out; the renderer receives a non-blocking error notification.
 - A capability query can be unavailable, unsupported, cancelled, or fail; already returned states remain distinguishable from applications that were never examined.
 - A stale operation preview cannot be confirmed after its selected keys or action change. The user creates a new preview instead.

@@ -184,6 +184,7 @@ async function queryWinget(
   encodedPackageId: string,
   runner: CommandRunner,
   signal?: AbortSignal,
+  strict = false,
 ): Promise<PackageQueryResult> {
   const storePrefix = 'msstore:';
   const packageId = encodedPackageId.startsWith(storePrefix)
@@ -200,6 +201,7 @@ async function queryWinget(
       '--disable-interactivity',
     ], { signal, timeoutMs: QUERY_TIMEOUT_MS, maxBufferBytes: QUERY_MAX_BUFFER_BYTES });
     const version = findWingetVersion(result.stdout, packageId);
+    if (strict && version === undefined) return { state: 'error', manager: 'winget' };
     return version === null
       ? { state: 'not-installed', manager: 'winget' }
       : { state: 'installed', manager: 'winget', ...(version ? { version } : {}) };
@@ -238,6 +240,7 @@ async function queryChocolatey(
   packageId: string,
   runner: CommandRunner,
   signal?: AbortSignal,
+  strict = false,
 ): Promise<PackageQueryResult> {
   try {
     const result = await runner('choco.exe', [
@@ -249,6 +252,7 @@ async function queryChocolatey(
       '--no-color',
     ], { signal, timeoutMs: QUERY_TIMEOUT_MS, maxBufferBytes: QUERY_MAX_BUFFER_BYTES });
     const version = findChocolateyVersion(result.stdout, packageId);
+    if (strict && version === undefined) return { state: 'error', manager: 'chocolatey' };
     return version === null
       ? { state: 'not-installed', manager: 'chocolatey' }
       : { state: 'installed', manager: 'chocolatey', ...(version ? { version } : {}) };
@@ -259,6 +263,52 @@ async function queryChocolatey(
     }
     return { state: 'error', manager: 'chocolatey' };
   }
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) {
+    const error = new Error('The installed-state check was cancelled.');
+    error.name = 'AbortError';
+    throw error;
+  }
+}
+
+/** Upgrade eligibility must come from the chosen manager, never an aggregate scan. */
+export async function readUpgradeInstalledState(
+  manager: PackageManagerId,
+  packageIds: readonly string[],
+  runner: CommandRunner,
+  platform: string,
+  signal?: AbortSignal,
+  detected?: PackageManagerCapability,
+): Promise<{ state: 'installed' | 'not-installed' | 'error'; reason?: string }> {
+  throwIfAborted(signal);
+  const definition = APPLICATION_PACKAGE_MANAGERS.find((entry) => entry.id === manager)!;
+  const capability = detected ?? await detectPackageManager(definition, runner, platform, signal);
+  throwIfAborted(signal);
+  if (capability.status !== 'available') {
+    return { state: 'error', reason: `Cannot verify installed packages with ${definition.label}: the selected manager is unavailable.` };
+  }
+  // Before v2, plain `choco list` may report remote packages. Do not query it.
+  const major = /^(0|[1-9]\d*)\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.exec(capability.version ?? '')?.[1];
+  if (manager === 'chocolatey' && (!major || !Number.isSafeInteger(Number(major)) || Number(major) < 2)) {
+    return { state: 'error', reason: 'Cannot verify installed packages: upgrade requires a recognized Chocolatey version 2 or later for local-only queries.' };
+  }
+  const results: PackageQueryResult[] = [];
+  for (const packageId of packageIds) {
+    throwIfAborted(signal);
+    results.push(manager === 'winget'
+      ? await queryWinget(packageId, runner, signal, true)
+      : await queryChocolatey(packageId, runner, signal, true));
+    throwIfAborted(signal);
+  }
+  if (results.length === 0 || results.some((result) => result.state === 'error')) {
+    return { state: 'error', reason: `Cannot verify all installed packages with ${definition.label}. Preview again after resolving the installed-state query.` };
+  }
+  if (results.some((result) => result.state === 'not-installed')) {
+    return { state: 'not-installed', reason: `One or more required packages are not installed with ${definition.label}. Upgrade requires every package to be installed.` };
+  }
+  return { state: 'installed' };
 }
 
 async function queryApplication(

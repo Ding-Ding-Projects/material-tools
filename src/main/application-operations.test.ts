@@ -26,6 +26,77 @@ function availableWingetRunner(
 }
 
 describe('application operation coordinator', () => {
+  it.each(['queued', 'running', 'succeeded', 'failed', 'unavailable', 'cancelled', 'all'] as const)(
+    'keeps results and lifecycle independent of throwing %s progress delivery',
+    async (throwAt) => {
+      const runner = vi.fn(availableWingetRunner((_executable, args) => {
+        if (args[0] === 'install' && args.includes('7zip.7zip')) {
+          throw new Error('Synthetic command failure');
+        }
+      }));
+      const coordinator = new ApplicationOperationCoordinator({
+        platform: throwAt === 'unavailable' ? 'linux' : 'win32',
+        captureFixture: throwAt !== 'failed' && throwAt !== 'unavailable',
+        runner,
+        fixtureStepDelayMs: 0,
+      });
+      const request = {
+        senderId: 7,
+        operationId: 'app-operation-progress-1',
+        action: 'install' as const,
+        applicationKeys: ['7zip', 'git', 'vlc'] as const,
+      };
+      const preview = await coordinator.preview(request);
+      const progress: ApplicationOperationProgress[] = [];
+      const cancellationResults: boolean[] = [];
+      let deliveryFailures = 0;
+      const result = await coordinator.execute({
+        ...preview,
+        senderId: request.senderId,
+        onProgress: (event) => {
+          progress.push(event);
+          if (throwAt === 'cancelled' && event.state === 'running' && event.applicationId === 'git') {
+            cancellationResults.push(coordinator.cancel(8, preview.operationId));
+            cancellationResults.push(coordinator.cancel(request.senderId, preview.operationId));
+          }
+          if (event.state === throwAt || throwAt === 'all') {
+            deliveryFailures += 1;
+            throw new Error('Synthetic progress delivery failure');
+          }
+        },
+      });
+      expect(deliveryFailures).toBeGreaterThan(0);
+      expect(cancellationResults).toEqual(throwAt === 'cancelled' ? [false, true] : []);
+      expect(result.items.map((item) => item.applicationId)).toEqual(request.applicationKeys);
+      expect(result.items.map((item) => item.state)).toEqual(
+        throwAt === 'failed' ? ['failed', 'succeeded', 'succeeded']
+          : throwAt === 'unavailable' ? ['unavailable', 'unavailable', 'unavailable']
+            : throwAt === 'cancelled' ? ['succeeded', 'cancelled', 'cancelled']
+              : ['succeeded', 'succeeded', 'succeeded'],
+      );
+      expect(result.state).toBe(
+        throwAt === 'failed' ? 'partial' : throwAt === 'unavailable' ? 'failed'
+          : throwAt === 'cancelled' ? 'cancelled' : 'completed',
+      );
+      const terminal = progress.filter((event) => !['queued', 'running'].includes(event.state));
+      expect(terminal.map((event) => event.applicationId)).toEqual(request.applicationKeys);
+      expect(terminal.map((event) => event.state)).toEqual(result.items.map((item) => item.state));
+      expect(terminal.map((event) => event.completedCount)).toEqual([1, 2, 3]);
+      expect(progress.every((event) => event.totalCount === 3 && event.completedCount <= 3)).toBe(true);
+      expect(coordinator.hasActiveExecution()).toBe(false);
+      expect(coordinator.hasPendingPlan()).toBe(false);
+      expect(coordinator.hasLifecycle()).toBe(false);
+      expect(coordinator.pendingPlanCount()).toBe(0);
+      await expect(coordinator.execute({ ...preview, senderId: request.senderId }))
+        .rejects.toThrow('plan was rejected');
+      // Reusing the operation identifier also proves its active reservation was cleared.
+      const nextPreview = await coordinator.preview(request);
+      expect(nextPreview.planToken).not.toBe(preview.planToken);
+      expect(coordinator.cancel(request.senderId, nextPreview.operationId)).toBe(true);
+      if (throwAt !== 'failed') expect(runner).not.toHaveBeenCalled();
+    },
+  );
+
   it('previews generated catalog keys without exposing package identifiers or arguments', async () => {
     const coordinator = new ApplicationOperationCoordinator({
       platform: 'win32',

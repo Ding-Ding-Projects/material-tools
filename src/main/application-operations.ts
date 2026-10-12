@@ -19,6 +19,7 @@ import {
   defaultCommandRunner,
   detectPackageManager,
   readApplicationCapabilitySnapshot,
+  readUpgradeInstalledState,
   type CommandRunner,
 } from './application-capabilities';
 
@@ -172,7 +173,8 @@ function buildCommand(
   }
   return {
     executable: 'choco.exe',
-    args: [action, encodedPackageId, '--yes', '--no-progress', '--limit-output', '--no-color'],
+    args: [action, encodedPackageId, '--yes', '--no-progress', '--limit-output', '--no-color',
+      ...(action === 'upgrade' ? ['--fail-on-not-installed'] : [])],
   };
 }
 
@@ -182,7 +184,7 @@ function publicPreview(plan: PrivateOperationPlan): ApplicationOperationPreview 
     name: entry.name,
     category: entry.category,
     manager,
-    readiness: manager ? 'ready' as const : 'unavailable' as const,
+    readiness: manager && !reason ? 'ready' as const : 'unavailable' as const,
     ...(reason ? { reason } : {}),
   }));
   return {
@@ -252,6 +254,16 @@ export class ApplicationOperationCoordinator {
       managers,
       items: entries.map((entry) => chooseManager(entry, managers)),
     };
+    if (plan.action === 'upgrade' && !this.captureFixture) {
+      for (const item of plan.items) {
+        if (!item.manager) continue;
+        const installed = await readUpgradeInstalledState(
+          item.manager, item.packageIds, this.runner, this.platform, undefined,
+          managers.find((manager) => manager.id === item.manager),
+        );
+        if (installed.state !== 'installed') item.reason = installed.reason;
+      }
+    }
     this.plans.set(planToken, plan);
     this.pendingPlanBySender.set(options.senderId, planToken);
     this.operationIds.add(options.operationId);
@@ -286,7 +298,7 @@ export class ApplicationOperationCoordinator {
       state: ApplicationOperationProgress['state'],
       message: string,
     ): void => {
-      options.onProgress?.({
+      const progress: ApplicationOperationProgress = {
         operationId: plan.operationId,
         applicationId: item.entry.key as ApplicationCatalogId,
         name: item.entry.name,
@@ -296,21 +308,28 @@ export class ApplicationOperationCoordinator {
         completedCount,
         totalCount: plan.items.length,
         message,
-      });
+      };
+      // Delivery is best-effort: a closing renderer must not change operation
+      // outcomes, duplicate terminal results, or interrupt lifecycle cleanup.
+      try {
+        options.onProgress?.(progress);
+      } catch {
+        // Do not expose or log notification exceptions or their payloads.
+      }
     };
 
-    for (const item of plan.items) emit(item, 'queued', 'Queued for this application operation.');
-
     try {
+      for (const item of plan.items) emit(item, 'queued', 'Queued for this application operation.');
+
       for (const item of plan.items) {
         if (controller.signal.aborted) throw abortError();
-        if (!item.manager) {
+        if (!item.manager || item.reason) {
           completedCount += 1;
           const reason = item.reason ?? 'No package manager is available for this item.';
           results.push({
             applicationId: item.entry.key as ApplicationCatalogId,
             name: item.entry.name,
-            manager: null,
+            manager: item.manager,
             state: 'unavailable',
             reason,
           });
@@ -325,7 +344,26 @@ export class ApplicationOperationCoordinator {
           if (this.captureFixture) {
             await delay(this.fixtureStepDelayMs, controller.signal);
           } else {
+            if (plan.action === 'upgrade') {
+              const installed = await readUpgradeInstalledState(
+                item.manager, item.packageIds, this.runner, this.platform, controller.signal,
+              );
+              if (installed.state !== 'installed') {
+                completedCount += 1;
+                const reason = installed.reason ?? 'Cannot verify upgrade eligibility. Preview again.';
+                results.push({
+                  applicationId: item.entry.key as ApplicationCatalogId,
+                  name: item.entry.name,
+                  manager: item.manager,
+                  state: 'unavailable',
+                  reason,
+                });
+                emit(item, 'unavailable', reason);
+                continue;
+              }
+            }
             for (const packageId of item.packageIds) {
+              if (controller.signal.aborted) throw abortError();
               const command = buildCommand(plan.action, item.manager, packageId);
               await this.runner(command.executable, command.args, {
                 signal: controller.signal,
@@ -333,14 +371,18 @@ export class ApplicationOperationCoordinator {
                 maxBufferBytes: EXECUTION_MAX_BUFFER_BYTES,
               });
             }
-            const verification = await readApplicationCapabilitySnapshot({
-              operationId: `${plan.operationId}-verify`,
-              applicationKeys: [item.entry.key as ApplicationCatalogId],
-              runner: this.runner,
-              platform: this.platform,
-              signal: controller.signal,
-            });
-            if (verification.applications[0]?.status !== 'installed') {
+            const installed = plan.action === 'upgrade'
+              ? (await readUpgradeInstalledState(
+                item.manager, item.packageIds, this.runner, this.platform, controller.signal,
+              )).state === 'installed'
+              : (await readApplicationCapabilitySnapshot({
+                operationId: `${plan.operationId}-verify`,
+                applicationKeys: [item.entry.key as ApplicationCatalogId],
+                runner: this.runner,
+                platform: this.platform,
+                signal: controller.signal,
+              })).applications[0]?.status === 'installed';
+            if (!installed) {
               throw new Error('Package-manager verification did not report the application as installed.');
             }
           }

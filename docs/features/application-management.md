@@ -22,6 +22,10 @@ Application operations have no user-editable command field. The renderer supplie
 
 ## Failure modes
 
+- Upgrade previews require every selected package identifier for each application to be installed with the chosen manager. Execution rechecks that same manager and all identifiers before the application's first mutation. An unavailable preview never becomes authorized merely because installed state changes; create a new preview.
+- Chocolatey Upgrade requires a recognized version 2 or later, where `list` reports local packages, and always adds the fixed `--fail-on-not-installed` guard. Older or unrecognized versions, failed queries, and missing managers fail closed with a verification reason. A confirmed missing package is reported separately from an unverifiable query. Manager preference is unchanged and execution never switches managers.
+- Upgrade postconditions use only the selected manager. An installation reported by another manager cannot establish upgrade eligibility or success. Install behavior remains unchanged.
+- If synchronous progress delivery throws, execution retains its actual item results and clears its lifecycle normally. Notifications can be lost when the renderer closes; this source-level containment is covered by injected tests, not a native Windows acceptance run.
 - A missing or unsupported manager leaves affected preview items unavailable without guessing that a package is absent.
 - A readiness scan can be cancelled. Returned states remain visible, and unexamined entries remain “Not detected.”
 - A changed selection or action makes an old preview stale; a new preview is required.
@@ -30,6 +34,10 @@ Application operations have no user-editable command field. The renderer supplie
 - Cancellation marks remaining items cancelled and removes the active cancellation action after the terminal result arrives.
 - A pending plan expires after five minutes, is bound to the requesting renderer, and cannot be replayed.
 - Documentation-capture fixture mode never invokes a package command and labels its preview, progress, notifications, and results as interface simulation.
+
+These upgrade checks do not prove that a newer version exists or that the version changed. A command failure does not establish that nothing changed. Descendant installer containment, accurate per-package partial-mutation reporting, and a visible discard route for an all-unavailable pending plan remain unresolved.
+
+The fixed guard follows the [Chocolatey Upgrade documentation](https://docs.chocolatey.org/en-us/choco/commands/upgrade/). The conservative version boundary follows the [Chocolatey v2 migration guide](https://docs.chocolatey.org/en-us/guides/upgrading-to-chocolatey-v2-v6/); older plain `list` output is not accepted as local installation evidence.
 
 ## Security considerations
 

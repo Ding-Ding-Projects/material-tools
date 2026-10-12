@@ -3,6 +3,7 @@
 ## Architecture
 
 - [Security and process architecture](architecture/security-and-processes.md)
+- [Main-process and renderer test discovery](architecture/test-discovery.md)
 
 ## Features
 

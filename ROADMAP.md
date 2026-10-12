@@ -18,6 +18,9 @@
 - [x] Detect WinGet, Chocolatey, and installed package state for a bounded explicit scope.
 - [x] Plan, confirm, install, and upgrade selected applications through the typed allowlisted operation bridge.
 - [x] Stream progress, support cancellation, preserve partial results, and verify installed-state postconditions.
+- [x] Contain synchronous progress-delivery exceptions with synthetic regression coverage; native Windows acceptance remains pending.
+- [x] Include main-process security suites in standard local test discovery; three documented backend risks and full-product verification remain open.
+- [x] Require selected-manager installed evidence before Upgrade and selected-manager postverification, with Chocolatey's fixed no-install guard and conservative local-query version checks; native Windows acceptance remains pending.
 - [ ] Detect available upgrades, implement uninstall and upgrade-all, and export redacted operation logs.
 
 ## 0.3 — tweaks, AppX, configuration, DNS, and updates
